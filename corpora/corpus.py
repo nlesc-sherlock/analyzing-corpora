@@ -59,12 +59,8 @@ def filter_nlp_tags(text, nlp_tags, exclude_words = []):
 
 def load_enron_corpus(directory):
 	total_size = 0
-	for user in os.listdir(directory):
-		for mailbox in os.listdir(os.path.join(directory, user)):
-			if os.path.isdir(os.path.join(directory, user, mailbox)):
-				total_size += len(os.listdir(os.path.join(directory, user, mailbox)))
-			else:
-				total_size += 1
+	for root, dirs, files in os.walk(directory):
+		total_size += len(files)
 
 	print("reading {0} files".format(total_size))
 
@@ -72,17 +68,13 @@ def load_enron_corpus(directory):
 	documents = []
 	for user in os.listdir(directory):
 		print("User: {0}".format(user))
-		for mailbox in os.listdir(os.path.join(directory, user)):
-			print("Mailbox: {0} ({1:.1%} at {2:.1} seconds)".format(mailbox, len(documents) / float(total_size), time()-start_time))
-			if os.path.isdir(os.path.join(directory, user, mailbox)):
-				for email in os.listdir(os.path.join(directory, user, mailbox)):
-					doc = {'user': user, 'mailbox': mailbox}
-					with open(os.path.join(directory, user, mailbox, email)) as f:
-						doc['tokens'] = clean_plaintext_corpus(f.read())
-					documents.append(doc)
-			else:
-				doc = {'user': user, 'mailbox': 'ROOT'}
-				with open(os.path.join(directory, user, mailbox)) as f:
+		for root, dirs, files in os.walk(os.path.join(directory, user)):
+			mailbox = os.path.basename(root)
+			if len(files) > 0:
+				print("Mailbox: {0} ({1:.0%}, {2:.2f} seconds)".format(mailbox, len(documents)/float(total_size), time() - start_time))
+			for email in files:
+				doc = {'user': user, 'mailbox': mailbox, 'directory': root}
+				with open(os.path.join(root, email)) as f:
 					doc['tokens'] = clean_plaintext_corpus(f.read())
 				documents.append(doc)
 
