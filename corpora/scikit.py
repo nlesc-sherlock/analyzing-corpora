@@ -1,23 +1,9 @@
 from wordcloud import WordCloud
-import gensim
 from sklearn.decomposition import LatentDirichletAllocation
 from scipy.sparse import csr_matrix
-import pickle
 import numpy as np
 from matplotlib.pyplot import savefig, subplot, figure, imshow, plot, axis, title
-
-def load_corpus(documents_filename):
-    with open(documents_filename, 'r') as f:
-        data_vraag = pickle.load(f)
-    data_ppl = data_vraag[data_vraag['individu of groep']=='mijzelf']
-    data_org = data_vraag[data_vraag['individu of groep']!='mijzelf']
-
-    vraagTokens = data_vraag['SentToks'].tolist()
-
-    dic = gensim.corpora.Dictionary(vraagTokens)
-    corpus = [dic.doc2bow(text) for text in vraagTokens]
-    return (dic, corpus, data_ppl)
-
+from corpus import load_vraagtekst_corpus
 
 def scikit_lda(mm, n_topics):
     lda = LatentDirichletAllocation(n_topics=n_topics, max_iter=5,
@@ -46,21 +32,21 @@ def topic_words(lda, dic):
     return (topicWords, topicWeightedWords)
 
 
-def topics_by_age(lda, dic, metadata, deltaAge = 5):
-    topicsByAge = np.zeros((metadata['Leeftijd'].max()+1, lda.n_topics))
+def topics_by_property(lda, dic, data, metadata_property, delta = 5):
+    topicsByProperty = np.zeros((metadata_property.max()+1, lda.n_topics))
 
-    for age in np.arange(metadata['Leeftijd'].max()+1): 
-        dataGroup = getPplCirca(metadata, age,deltaAge)
+    for prop_value in np.arange(metadata_property.max()+1): 
+        dataGroup = getPropertyCirca(data, metadata_property, prop_value, delta)
         groupTokens = dataGroup['SentToks'].tolist()
         
         for qTokens in groupTokens:
             topicWeights = getDocumentTopics(qTokens, lda, dic)
-            for topic,weight in enumerate(topicWeights):
-                topicsByAge[age,topic] += weight / len(groupTokens)
+            for topic, weight in enumerate(topicWeights):
+                topicsByProperty[prop_value, topic] += weight / len(groupTokens)
 
-    return topicsByAge
+    return topicsByProperty
 
-def plot_wordcloud_with_age(topicWeightedWords, topicsByAge):
+def plot_wordcloud_with_property(topicWeightedWords, topicsByProperty):
     figure(figsize=(16,40))
     for idx,topic in enumerate(topicWeightedWords):
         wc = WordCloud(background_color="white")
@@ -70,7 +56,7 @@ def plot_wordcloud_with_age(topicWeightedWords, topicsByAge):
         axis('off')
         
         subplot(len(topicWeightedWords),2,2*idx+2)
-        plot(topicsByAge[:,idx])
+        plot(topicsByProperty[:,idx])
         axis([10, 100, 0, 1.0])
         title('Topic #%2d'%(idx))
 
@@ -95,14 +81,14 @@ def generate_corpus_matrix(dic, corpus):
     nFeatures = len(dic)
     return csr_matrix((data, (col,row)), shape=(nSamples, nFeatures))
 
-def inRange(age, targetAge, delta):
-    return (targetAge-delta)<=age and age<=(targetAge+delta)
+def inRange(value, targetValue, delta):
+    return (targetValue - delta) <= value and value <= (targetValue + delta)
 
-def getPplCirca(metadata, targetAge, delta):
-    return metadata[metadata['Leeftijd'].apply(lambda age: inRange(age, targetAge, delta))]
+def getPropertyCirca(data, metadata_property, property_value, delta):
+    return data[metadata_property.apply(lambda age: inRange(metadata_property, property_value, delta))]
 
 if __name__ == '__main__':
-    dic, corpus, data_ppl = load_corpus('preprocessedData.pkl')
+    dic, corpus, data = load_vraagtekst_corpus('preprocessedData.pkl')
     
     print("nSamples (docs) : {0}".format(len(corpus)))
     print("nFeatures(words): {0}".format(len(dic)))
@@ -110,6 +96,6 @@ if __name__ == '__main__':
     mm = generate_corpus_matrix(dic, corpus)
     lda = scikit_lda(mm, n_topics=10)
     topicWords, topicWeightedWords = topic_words(lda, dic)
-    topicsByAge = topics_by_age(lda, dic, data_ppl)
-    plot_wordcloud_with_age(topicWeightedWords, topicsByAge)
+    topicsByAge = topics_by_property(lda, dic, data, data['Leeftijd'])
+    plot_wordcloud_with_property(topicWeightedWords, topicsByAge)
     savefig('topics.png')
