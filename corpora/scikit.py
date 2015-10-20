@@ -6,8 +6,8 @@ import pickle
 import numpy as np
 from matplotlib.pyplot import savefig, subplot, figure, imshow, plot, axis, title
 
-def scikit_lda(documentsFilename, n_topics):
-    with open(documentsFilename, 'r') as f:
+def load_corpus(documents_filename):
+    with open(documents_filename, 'r') as f:
         data_vraag = pickle.load(f)
     data_ppl = data_vraag[data_vraag['individu of groep']=='mijzelf']
     data_org = data_vraag[data_vraag['individu of groep']!='mijzelf']
@@ -16,18 +16,18 @@ def scikit_lda(documentsFilename, n_topics):
 
     dic = gensim.corpora.Dictionary(vraagTokens)
     corpus = [dic.doc2bow(text) for text in vraagTokens]
+    return (dic, corpus, data_ppl)
 
-    print("nSamples (docs) : {0}".format(len(corpus)))
-    print("nFeatures(words): {0}".format(len(dic)))
 
-    mm = generate_corpus_matrix(corpus, dic)
-
+def scikit_lda(mm, n_topics):
     lda = LatentDirichletAllocation(n_topics=n_topics, max_iter=5,
                                 learning_method='online', learning_offset=50.
                                 #,random_state=0
                                )
     lda.fit(mm)
+    return lda
 
+def topic_words(lda, dic):
     topicWords = []
     topicWeightedWords = []
 
@@ -43,11 +43,14 @@ def scikit_lda(documentsFilename, n_topics):
         topicWords.append(wordsInTopic)
         topicWeightedWords.append(topicWeights)
 
-    topicsByAge = np.zeros((data_ppl['Leeftijd'].max()+1, n_topics))
-    deltaAge = 5
+    return (topicWords, topicWeightedWords)
 
-    for age in np.arange(data_ppl['Leeftijd'].max()+1): 
-        dataGroup = getPplCirca(data_ppl, age,deltaAge)
+
+def topics_by_age(lda, dic, metadata, deltaAge = 5):
+    topicsByAge = np.zeros((metadata['Leeftijd'].max()+1, lda.n_topics))
+
+    for age in np.arange(metadata['Leeftijd'].max()+1): 
+        dataGroup = getPplCirca(metadata, age,deltaAge)
         groupTokens = dataGroup['SentToks'].tolist()
         
         for qTokens in groupTokens:
@@ -55,39 +58,30 @@ def scikit_lda(documentsFilename, n_topics):
             for topic,weight in enumerate(topicWeights):
                 topicsByAge[age,topic] += weight / len(groupTokens)
 
+    return topicsByAge
+
+def plot_wordcloud_with_age(topicWeightedWords, topicsByAge):
     figure(figsize=(16,40))
     for idx,topic in enumerate(topicWeightedWords):
         wc = WordCloud(background_color="white")
         img = wc.generate_from_frequencies([ (word, weight) for weight,word in topic ])
-        subplot(n_topics,2,2*idx+1)
+        subplot(len(topicWeightedWords),2,2*idx+1)
         imshow(img)
         axis('off')
         
-        subplot(n_topics,2,2*idx+2)
+        subplot(len(topicWeightedWords),2,2*idx+2)
         plot(topicsByAge[:,idx])
         axis([10, 100, 0, 1.0])
         title('Topic #%2d'%(idx))
-    savefig('topics.png'.format(idx))
 
 def getDocumentTopics(docTokens, lda, dic):
     wcTuples = dic.doc2bow(docTokens)
-    data = []
-    row  = []
-    col  = []
-
-    for w,c in wcTuples:
-        col.append(0)
-        row.append(w)
-        data.append(c)
-
-    nSamples = 1
-    nFeatures = len(dic)
-    oneDoc = csr_matrix((data, (col,row)), shape=(nSamples, nFeatures))
+    oneDoc = generate_corpus_matrix(dic, [wcTuples])
     docWeights = lda.transform(oneDoc)[0]
     docWeights /= docWeights.sum()
     return docWeights
 
-def generate_corpus_matrix(corpus, dic):
+def generate_corpus_matrix(dic, corpus):
     data = []
     row  = []
     col  = []
@@ -104,8 +98,18 @@ def generate_corpus_matrix(corpus, dic):
 def inRange(age, targetAge, delta):
     return (targetAge-delta)<=age and age<=(targetAge+delta)
 
-def getPplCirca(data_ppl, targetAge, delta):
-    return data_ppl[data_ppl['Leeftijd'].apply(lambda age: inRange(age,targetAge, delta))]
+def getPplCirca(metadata, targetAge, delta):
+    return metadata[metadata['Leeftijd'].apply(lambda age: inRange(age, targetAge, delta))]
 
 if __name__ == '__main__':
-    scikit_lda('preprocessedData.pkl', n_topics=10)
+    dic, corpus, data_ppl = load_corpus('preprocessedData.pkl')
+    
+    print("nSamples (docs) : {0}".format(len(corpus)))
+    print("nFeatures(words): {0}".format(len(dic)))
+
+    mm = generate_corpus_matrix(dic, corpus)
+    lda = scikit_lda(mm, n_topics=10)
+    topicWords, topicWeightedWords = topic_words(lda, dic)
+    topicsByAge = topics_by_age(lda, dic, data_ppl)
+    plot_wordcloud_with_age(topicWeightedWords, topicsByAge)
+    savefig('topics.png')
