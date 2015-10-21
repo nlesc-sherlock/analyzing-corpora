@@ -85,7 +85,7 @@ class Corpus(object):
         if self._exclude_words is None:
             stopwords = nltk.corpus.stopwords.words('english')
             stopwords += ['', '.', ',', '?', '(', ')', ',', ':', "'",
-                          u'``', u"''", ';','-','!','%','&','...','=', '>',
+                          u'``', u"''", ';','-','!','%','&','...','=', '>', '<',
                           '#', '_', '~', '+', '*', '/', '\\', '[', ']', '|']
             stopwords += [u'\u2019', u'\u2018', u'\u2013', u'\u2022',
                           u'\u2014', u'\uf02d', u'\u20ac', u'\u2026']
@@ -135,19 +135,16 @@ class Corpus(object):
     def save_dictionary(self, filename):
         self.dic.save(filename)
 
+
 forward_pattern = re.compile('[\r\n]>[^\r\n]*[\r\n]')
 html_patten = re.compile('<[^<]+?>')
 mime_pattern = re.compile('=\d\d')
-dot_pattern = re.compile('\.')
+dot_pattern = re.compile('\.\.+')
 
 def filter_email(text):
-    # forward/reply lines
     text = forward_pattern.sub('\n', text)
-    # html
     text = html_patten.sub(' ', text)
-    # mime
     text = mime_pattern.sub(' ', text)
-    # sequence of dots
     return dot_pattern.sub('. ', text)
 
 def load_vraagtekst_corpus(documents_filename):
@@ -201,6 +198,7 @@ if __name__ == '__main__':
 
     corpus = load_enron_corpus(sys.argv[1])
     print("Emails: {0}".format(len(corpus.documents)))
+
     with open(sys.argv[2], 'wb') as f:
         pickle.dump({'tokens': corpus.documents, 'metadata': corpus.metadata}, f)
         
