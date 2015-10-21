@@ -28,10 +28,12 @@ notebook==4.0.6
 numpy==1.10.1
 pandas==0.17.0
 path.py==8.1.2
+Pattern==2.6
 pbr==1.8.1
 pexpect==4.0.1
 pickleshare==0.5
 Pillow==3.0.0
+progressbar==2.3
 ptyprocess==0.5
 Pygments==2.0.2
 pyparsing==2.0.3

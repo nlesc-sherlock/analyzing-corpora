@@ -9,53 +9,68 @@ import progressbar
 from time import time
 
 class Corpus(object):
-    def __init__(self):
-        self.dic = None
-        self.corpus = None
-        self.documents = []
-        self.metadata = []
+    def __init__(self, documents = [], metadata = [], nlp_tags=None, exclude_words=None):
+        self.documents = documents
+        self.metadata = metadata
+        if nlp_tags is None:
+            self._nlp_tags = None
+        else:
+            self._nlp_tags = frozenset(nlp_tags)
+        if exclude_words is None:
+            self._exclude_words = None
+        else:
+            self._exclude_words = frozenset(exclude_words)
 
     def add_file(self, fp, metadata={}):
         self.add_text(fp.read(), metadata)
 
     def add_text(self, text, metadata={}):
-        tokens = self.tokenize_english(text)
+        tokens = self.tokenize(text)
         self.documents.append(tokens)
         self.metadata.append(metadata)
 
-    def tokenize_english(self, text):
-        stopwords = nltk.corpus.stopwords.words('english')
-        stopwords += ['', '.', ',', '?', '(', ')', ',', ':', "'", u'``', u"''",
-                      ';','-','!','%','&','...','=', '>', '#', '_', '~', '+',
-                      '*', '/', '\\', '[', ']', '|']
-        stopwords += [u'\u2019', u'\u2018', u'\u2013', u'\u2022', u'\u2014',
-                      u'\uf02d',u'\u20ac',u'\u2026']
+    @property
+    def nlp_tags(self):
+        if self._nlp_tags is None:
+            self._nlp_tags = frozenset([
+                # None, u'(', u')', u',', u'.', u'<notranslation>damesbladen', # extras
+                # u'CC', # conjunction
+                # u'CD', # cardinal (numbers)
+                # u'DT', # determiner (de, het)
+                u'FW', # foreign word
+                # u'IN', #conjunction
+                u'JJ', # adjectives -- # u'JJR', u'JJS',
+                # u'MD', # Modal verb
+                u'NN', u'NNP', u'NNPS', u'NNS', # Nouns
+                # u'PRP', # Pronouns -- # u'PRP$',
+                u'RB', # adverb
+                u'RP', # adverb
+                # u'SYM', # Symbol
+                # u'TO', # infinitival to
+                # u'UH', # interjection
+                u'VB', u'VBD', u'VBG', u'VBN', u'VBP', u'VBZ', # Verb forms
+                ])
+        return self._nlp_tags
 
-        keepTags = [
-            # None, u'(', u')', u',', u'.', u'<notranslation>damesbladen', # extras
-            # u'CC', # conjunction
-            # u'CD', # cardinal (numbers)
-            # u'DT', # determiner (de, het)
-            u'FW', # foreign word
-            # u'IN', #conjunction
-            u'JJ', # adjectives -- # u'JJR', u'JJS',
-            # u'MD', # Modal verb
-            u'NN', u'NNP', u'NNPS', u'NNS', # Nouns
-            # u'PRP', # Pronouns -- # u'PRP$',
-            u'RB', # adverb
-            u'RP', # adverb
-            # u'SYM', # Symbol
-            # u'TO', # infinitival to
-            # u'UH', # interjection
-            u'VB', u'VBD', u'VBG', u'VBN', u'VBP', u'VBZ' # Verb forms
-        ]
-        return self.tokenize(text, keepTags, exclude_words=stopwords)
+    @property
+    def exclude_words(self):
+        if self._exclude_words is None:
+            stopwords = nltk.corpus.stopwords.words('english')
+            stopwords += ['', '.', ',', '?', '(', ')', ',', ':', "'",
+                          u'``', u"''", ';','-','!','%','&','...','=', '>',
+                          '#', '_', '~', '+', '*', '/', '\\', '[', ']', '|']
+            stopwords += [u'\u2019', u'\u2018', u'\u2013', u'\u2022',
+                          u'\u2014', u'\uf02d', u'\u20ac', u'\u2026']
+            self._exclude_words = frozenset(stopwords)
+        return self._exclude_words
 
-    def tokenize(self, text, nlp_tags, exclude_words = []):
+    def tokenize(self, text, nlp_tags=None, exclude_words=None):
+        if nlp_tags is None:
+            nlp_tags = self.nlp_tags
+        if exclude_words is None:
+            exclude_words = self.exclude_words
+
         words = []
-        # slightly faster w in collection testing
-        nlp_tags = frozenset(nlp_tags)
-        exclude_words = frozenset(exclude_words)
         for s in nlp.split(nlp.parse(text)):
             for word, tag in s.tagged:
                 if tag in nlp_tags:
@@ -96,7 +111,7 @@ def load_enron_corpus(directory):
     print("reading {0} files".format(total_size))
 
     corpus = Corpus()
-    start_time = time()
+
     bar = progressbar.ProgressBar(
         maxval=total_size,
         widgets=[progressbar.Percentage(), ' ', progressbar.Bar('=', '[', ']'),
@@ -110,8 +125,8 @@ def load_enron_corpus(directory):
                 metadata = {'user': user, 'mailbox': mailbox, 'directory': root}
                 with open(os.path.join(root, email)) as f:
                     corpus.add_file(f, metadata)
-
-            bar.update(len(corpus.documents))
+                if len(corpus.documents) % 10 == 0:
+                    bar.update(len(corpus.documents))
 
     bar.finish()
 
