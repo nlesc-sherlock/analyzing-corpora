@@ -1,26 +1,31 @@
 import gensim
 import pickle
-import pandas as pd
 import nltk
 import pattern.nl as nlp
 import sys
 import os
 import progressbar
-from time import time
 from scipy.sparse import csr_matrix
 import re
-from scipy.sparse import csr_matrix
-import numpy as np
-from matplotlib.pyplot import savefig, subplot, figure, imshow, plot, axis, title
 from scikit import *
+import multiprocessing
+
 
 class Corpus(object):
-    def __init__(self, documents = [], metadata = [], nlp_tags=None, exclude_words=None):
-        self.documents = documents
-        self.metadata = metadata
-        self.dic = None
+    def __init__(self, documents = None, metadata = None, nlp_tags=None, exclude_words=None):
+        if documents is None:
+            self.documents = []
+        else:
+            self.documents = documents
+
+        if metadata is None:
+            self.metadata = []
+        else:
+            self.metadata = metadata
+
         self.csr_matrix = None
-        #self.lda = None
+        self.dic = gensim.corpora.Dictionary()
+        self.corpus = []
         
         if nlp_tags is None:
             self._nlp_tags = None
@@ -30,9 +35,6 @@ class Corpus(object):
             self._exclude_words = None
         else:
             self._exclude_words = frozenset(exclude_words)
-        self.csr_matrix = None
-        self.dic = gensim.corpora.Dictionary()
-        self.corpus = []
 
     def add_file(self, fp, metadata={}, update_dictionary=True):
         self.add_text(fp.read(), metadata)
@@ -135,6 +137,27 @@ class Corpus(object):
     def save_dictionary(self, filename):
         self.dic.save(filename)
 
+    def merge(self, other):
+        self.documents = self.documents + other.documents
+        self.metadata = self.metadata + other.metadata
+        self.dic.merge_with(other.dic)
+        self.csr_matrix = None
+        self.corpus = None
+
+
+def load_files(user, path, files, result_queue = None):
+    corpus = Corpus()
+    mailbox = os.path.basename(path)
+    for email in files:
+        metadata = {'user': user, 'mailbox': mailbox, 'directory': path}
+        with open(os.path.join(path, email)) as f:
+            text = filter_email(f.read())
+            corpus.add_text(text, metadata)
+    if result_queue is None:
+        return corpus
+    else:
+        result_queue.put(corpus)
+
 
 forward_pattern = re.compile('[\r\n]>[^\r\n]*[\r\n]')
 html_patten = re.compile('<[^<]+?>')
@@ -159,15 +182,17 @@ def load_vraagtekst_corpus(documents_filename):
     corpus = [dic.doc2bow(text) for text in vraagTokens]
     return (dic, corpus, data_ppl)
 
-
-
-def load_enron_corpus(directory):
+def count_files(directory):
     total_size = 0
     for root, dirs, files in os.walk(directory):
         total_size += len(files)
 
-    print("reading {0} files".format(total_size))
+    return total_size
 
+
+def load_enron_corpus(directory):
+    total_size = count_files(directory)
+    print "reading {0} files".format(total_size)
     corpus = Corpus()
 
     bar = progressbar.ProgressBar(
@@ -177,17 +202,59 @@ def load_enron_corpus(directory):
     bar.start()
 
     for user in os.listdir(directory):
-        for root, dirs, files in os.walk(os.path.join(directory, user)):
-            mailbox = os.path.basename(root)
-            for email in files:
-                metadata = {'user': user, 'mailbox': mailbox, 'directory': root}
-                with open(os.path.join(root, email)) as f:
-                    text = filter_email(f.read())
-                    corpus.add_text(text, metadata)
-                if len(corpus.documents) % 10 == 0:
-                    bar.update(len(corpus.documents))
+        for path, dirs, files in os.walk(os.path.join(directory, user)):
+            if len(files) > 0:
+                corpus.merge(load_files(user, path, files))
+                bar.update(len(corpus.documents))
 
     bar.finish()
+
+    return corpus
+
+
+def load_enron_corpus_mp(directory, num_processes=2):
+    total_size = count_files(directory)
+    print "reading {0} files".format(total_size)
+    corpus = Corpus()
+
+    manager = multiprocessing.Manager()
+    result_queue = manager.Queue()
+    pool = multiprocessing.Pool(processes=num_processes)
+
+    bar = progressbar.ProgressBar(
+        maxval=total_size,
+        widgets=[progressbar.Percentage(), ' ', progressbar.Bar('=', '[', ']'),
+                 ' ', progressbar.widgets.ETA()])
+
+    print "assigning tasks"
+    bar.start()
+
+    files_added = 0
+    results_added = 0
+    for user in os.listdir(directory):
+        for path, dirs, files in os.walk(os.path.join(directory, user)):
+            if len(files) > 0:
+                pool.apply_async(load_files, [user, path, files, result_queue])
+                files_added += len(files)
+                results_added += 1
+                bar.update(files_added)
+    bar.finish()
+
+    print "reading results"
+    bar = progressbar.ProgressBar(
+        maxval=total_size,
+        widgets=[progressbar.Percentage(), ' ', progressbar.Bar('=', '[', ']'),
+                 ' ', progressbar.widgets.ETA()])
+    bar.start()
+
+    for i in range(results_added):
+        corpus.merge(result_queue.get())
+        bar.update(len(corpus.documents))
+
+    bar.finish()
+
+    pool.close()
+    pool.join()
 
     return corpus
 
@@ -196,7 +263,7 @@ if __name__ == '__main__':
     #     print("Usage: corpus.py enron_directory enron_pickle_file.pkl")
     #     sys.exit(1)
 
-    corpus = load_enron_corpus(sys.argv[1])
+    corpus = load_enron_corpus_mp(sys.argv[1])
     print("Emails: {0}".format(len(corpus.documents)))
 
     with open(sys.argv[2], 'wb') as f:
