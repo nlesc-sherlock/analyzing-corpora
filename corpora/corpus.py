@@ -1,76 +1,89 @@
 import gensim
 import pickle
-import pandas as pd
 import nltk
 import pattern.nl as nlp
 import sys
 import os
 import progressbar
-from time import time
 from scipy.sparse import csr_matrix
-import numpy as np
-from matplotlib.pyplot import savefig, subplot, figure, imshow, plot, axis, title
+import re
 from scikit import *
+import multiprocessing
+
 
 class Corpus(object):
-    def __init__(self, documents = [], metadata = [], nlp_tags=None, exclude_words=None):
-        self.documents = documents
-        self.metadata = metadata
-        self.dic = None
+    standard_nlp_tags = frozenset([
+        # None, u'(', u')', u',', u'.', u'<notranslation>damesbladen', # extras
+        # u'CC', # conjunction
+        # u'CD', # cardinal (numbers)
+        # u'DT', # determiner (de, het)
+        u'FW', # foreign word
+        # u'IN', #conjunction
+        u'JJ', # adjectives -- # u'JJR', u'JJS',
+        # u'MD', # Modal verb
+        u'NN', u'NNP', u'NNPS', u'NNS', # Nouns
+        # u'PRP', # Pronouns -- # u'PRP$',
+        u'RB', # adverb
+        u'RP', # adverb
+        # u'SYM', # Symbol
+        # u'TO', # infinitival to
+        # u'UH', # interjection
+        u'VB', u'VBD', u'VBG', u'VBN', u'VBP', u'VBZ', # Verb forms
+        ])
+    standard_stopwords = frozen_set(
+        nltk.corpus.stopwords.words('english') +
+        ['', '.', ',', '?', '(', ')', ',', ':', "'",
+         u'``', u"''", ';','-','!','%','&','...','=', '>', '<',
+         '#', '_', '~', '+', '*', '/', '\\', '[', ']', '|'
+         u'\u2019', u'\u2018', u'\u2013', u'\u2022',
+         u'\u2014', u'\uf02d', u'\u20ac', u'\u2026'])
+
+    def __init__(self, documents = None, metadata = None, nlp_tags=None, exclude_words=None):
+        if documents is None:
+            self.documents = []
+        else:
+            self.documents = documents
+
+        if metadata is None:
+            self.metadata = []
+        else:
+            self.metadata = metadata
+
         self.csr_matrix = None
-        #self.lda = None
+        self.dic = gensim.corpora.Dictionary()
+        self.corpus = []
         
         if nlp_tags is None:
-            self._nlp_tags = None
+            self.nlp_tags = Corpus.standard_nlp_tags
         else:
-            self._nlp_tags = frozenset(nlp_tags)
+            self.nlp_tags = frozenset(nlp_tags)
         if exclude_words is None:
-            self._exclude_words = None
+            self.exclude_words = Corpus.standard_stopwords
         else:
-            self._exclude_words = frozenset(exclude_words)
+            self.exclude_words = frozenset(exclude_words)
 
-    def add_file(self, fp, metadata={}):
+    def add_file(self, fp, metadata={}, update_dictionary=True):
         self.add_text(fp.read(), metadata)
 
-    def add_text(self, text, metadata={}):
+    def add_text(self, text, metadata={}, update_dictionary=True):
         tokens = self.tokenize(text)
         self.documents.append(tokens)
         self.metadata.append(metadata)
+        if update_dictionary:
+            self.dic.add_documents([tokens])
 
     @property
-    def nlp_tags(self):
-        if self._nlp_tags is None:
-            self._nlp_tags = frozenset([
-                # None, u'(', u')', u',', u'.', u'<notranslation>damesbladen', # extras
-                # u'CC', # conjunction
-                # u'CD', # cardinal (numbers)
-                # u'DT', # determiner (de, het)
-                u'FW', # foreign word
-                # u'IN', #conjunction
-                u'JJ', # adjectives -- # u'JJR', u'JJS',
-                # u'MD', # Modal verb
-                u'NN', u'NNP', u'NNPS', u'NNS', # Nouns
-                # u'PRP', # Pronouns -- # u'PRP$',
-                u'RB', # adverb
-                u'RP', # adverb
-                # u'SYM', # Symbol
-                # u'TO', # infinitival to
-                # u'UH', # interjection
-                u'VB', u'VBD', u'VBG', u'VBN', u'VBP', u'VBZ', # Verb forms
-                ])
-        return self._nlp_tags
+    def num_samples(self):
+        if self.corpus is None:
+            self.generate_bag_of_words()
+
+        return len(self.corpus)
 
     @property
-    def exclude_words(self):
-        if self._exclude_words is None:
-            stopwords = nltk.corpus.stopwords.words('english')
-            stopwords += ['', '.', ',', '?', '(', ')', ',', ':', "'",
-                          u'``', u"''", ';','-','!','%','&','...','=', '>',
-                          '#', '_', '~', '+', '*', '/', '\\', '[', ']', '|']
-            stopwords += [u'\u2019', u'\u2018', u'\u2013', u'\u2022',
-                          u'\u2014', u'\uf02d', u'\u20ac', u'\u2026']
-            self._exclude_words = frozenset(stopwords)
-        return self._exclude_words
+    def num_features(self):
+        if self.dic is None:
+            self.generate_dictionary()
+        return len(self.dic)
 
     def tokenize(self, text, nlp_tags=None, exclude_words=None):
         if nlp_tags is None:
@@ -88,30 +101,65 @@ class Corpus(object):
 
         return words
 
+    def load_dictionary(self, filename):
+        self.dic = gensim.corpora.Dictionary.load(filename)
+
+    def generate_dictionary(self):
+        self.dic = gensim.corpora.Dictionary(self.documents)
+
+    def generate_corpus(self):
+        self.corpus = [self.dic.doc2bow(tokens) for tokens in self.documents]
+
     def generate_corpus_matrix(self):
+        if self.corpus is None:
+            self.generate_bag_of_words()
+
         data = []
         row  = []
         col  = []
-        for n,doc in enumerate(self.corpus):
-            for w,c in doc:
+        for n, doc in enumerate(self.corpus):
+            for w, c in doc:
                 col.append(n)
                 row.append(w)
                 data.append(c)
 
-        nSamples = len(self.corpus)
-        nFeatures = len(self.dic)
-        self.csr_matrix =  csr_matrix((data, (col,row)), shape=(nSamples, nFeatures))
-        
-        
-    def generate_dictionary(self):
-        self.dic = gensim.corpora.Dictionary(self.documents)
+        self.csr_matrix = csr_matrix((data, (col,row)), shape=(self.num_samples, self.num_features))
 
-    def generate_bag_of_words(self):
-        if self.dic is None:
-            self.generate_dictionary()
+    def save_dictionary(self, filename):
+        self.dic.save(filename)
 
-        self.corpus = [self.dic.doc2bow(tokens) for tokens in self.documents]
+    def merge(self, other):
+        self.documents = self.documents + other.documents
+        self.metadata = self.metadata + other.metadata
+        self.dic.merge_with(other.dic)
+        self.csr_matrix = None
+        self.corpus = None
 
+
+def load_files(user, path, files, result_queue = None):
+    corpus = Corpus()
+    mailbox = os.path.basename(path)
+    for email in files:
+        metadata = {'user': user, 'mailbox': mailbox, 'directory': path}
+        with open(os.path.join(path, email)) as f:
+            text = filter_email(f.read())
+            corpus.add_text(text, metadata, update_dictionary=False)
+    if result_queue is None:
+        return corpus
+    else:
+        result_queue.put(corpus)
+
+
+forward_pattern = re.compile('[\r\n]>[^\r\n]*[\r\n]')
+html_patten = re.compile('<[^<]+?>')
+mime_pattern = re.compile('=\d\d')
+dot_pattern = re.compile('\.\.+')
+
+def filter_email(text):
+    text = forward_pattern.sub('\n', text)
+    text = html_patten.sub(' ', text)
+    text = mime_pattern.sub(' ', text)
+    return dot_pattern.sub('. ', text)
 
 def load_vraagtekst_corpus(documents_filename):
     with open(documents_filename, 'r') as f:
@@ -125,15 +173,17 @@ def load_vraagtekst_corpus(documents_filename):
     corpus = [dic.doc2bow(text) for text in vraagTokens]
     return (dic, corpus, data_ppl)
 
-
-
-def load_enron_corpus(directory):
+def count_files(directory):
     total_size = 0
     for root, dirs, files in os.walk(directory):
         total_size += len(files)
 
-    print("reading {0} files".format(total_size))
+    return total_size
 
+
+def load_enron_corpus(directory):
+    total_size = count_files(directory)
+    print "reading {0} files".format(total_size)
     corpus = Corpus()
 
     bar = progressbar.ProgressBar(
@@ -143,26 +193,70 @@ def load_enron_corpus(directory):
     bar.start()
 
     for user in os.listdir(directory):
-        for root, dirs, files in os.walk(os.path.join(directory, user)):
-            mailbox = os.path.basename(root)
-            for email in files:
-                metadata = {'user': user, 'mailbox': mailbox, 'directory': root}
-                with open(os.path.join(root, email)) as f:
-                    corpus.add_file(f, metadata)
-                if len(corpus.documents) % 10 == 0:
-                    bar.update(len(corpus.documents))
+        for path, dirs, files in os.walk(os.path.join(directory, user)):
+            if len(files) > 0:
+                corpus.merge(load_files(user, path, files))
+                bar.update(len(corpus.documents))
 
     bar.finish()
 
     return corpus
 
-if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        print("Usage: corpus.py enron_directory enron_pickle_file.pkl")
-        sys.exit(1)
 
-    corpus = load_enron_corpus(sys.argv[1])
+def load_enron_corpus_mp(directory, num_processes=2):
+    total_size = count_files(directory)
+    print "reading {0} files".format(total_size)
+    corpus = Corpus()
+
+    manager = multiprocessing.Manager()
+    result_queue = manager.Queue()
+    pool = multiprocessing.Pool(processes=num_processes)
+
+    bar = progressbar.ProgressBar(
+        maxval=total_size,
+        widgets=[progressbar.Percentage(), ' ', progressbar.Bar('=', '[', ']'),
+                 ' ', progressbar.widgets.ETA()])
+
+    print "assigning tasks"
+    bar.start()
+
+    files_added = 0
+    results_added = 0
+    for user in os.listdir(directory):
+        for path, dirs, files in os.walk(os.path.join(directory, user)):
+            if len(files) > 0:
+                pool.apply_async(load_files, [user, path, files, result_queue])
+                files_added += len(files)
+                results_added += 1
+                bar.update(files_added)
+    bar.finish()
+
+    print "reading results"
+    bar = progressbar.ProgressBar(
+        maxval=total_size,
+        widgets=[progressbar.Percentage(), ' ', progressbar.Bar('=', '[', ']'),
+                 ' ', progressbar.widgets.ETA()])
+    bar.start()
+
+    for i in range(results_added):
+        corpus.merge(result_queue.get())
+        bar.update(len(corpus.documents))
+
+    bar.finish()
+
+    pool.close()
+    pool.join()
+
+    return corpus
+
+if __name__ == '__main__':
+    # if len(sys.argv) != 3:
+    #     print("Usage: corpus.py enron_directory enron_pickle_file.pkl")
+    #     sys.exit(1)
+
+    corpus = load_enron_corpus_mp(sys.argv[1])
     print("Emails: {0}".format(len(corpus.documents)))
+
     with open(sys.argv[2], 'wb') as f:
         pickle.dump({'tokens': corpus.documents, 'metadata': corpus.metadata}, f)
         
@@ -175,4 +269,3 @@ if __name__ == '__main__':
     topicWords, topicWeightedWords = topic_words(lda, corpus.dic)
     print("topicWords:",topicWords)
     print("topicWeightedWords:", topicWeightedWords)
-    
