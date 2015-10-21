@@ -7,6 +7,7 @@ import sys
 import os
 import progressbar
 from time import time
+from scipy.sparse import csr_matrix
 import re
 from scipy.sparse import csr_matrix
 import numpy as np
@@ -29,14 +30,32 @@ class Corpus(object):
             self._exclude_words = None
         else:
             self._exclude_words = frozenset(exclude_words)
+        self.csr_matrix = None
+        self.dic = gensim.corpora.Dictionary()
+        self.corpus = []
 
-    def add_file(self, fp, metadata={}):
+    def add_file(self, fp, metadata={}, update_dictionary=True):
         self.add_text(fp.read(), metadata)
 
-    def add_text(self, text, metadata={}):
+    def add_text(self, text, metadata={}, update_dictionary=True):
         tokens = self.tokenize(text)
         self.documents.append(tokens)
         self.metadata.append(metadata)
+        if update_dictionary:
+            self.dic.add_documents([tokens])
+
+    @property
+    def num_samples(self):
+        if self.corpus is None:
+            self.generate_bag_of_words()
+
+        return len(self.corpus)
+
+    @property
+    def num_features(self):
+        if self.dic is None:
+            self.generate_dictionary()
+        return len(self.dic)
 
     @property
     def nlp_tags(self):
@@ -89,39 +108,47 @@ class Corpus(object):
 
         return words
 
+    def load_dictionary(self, filename):
+        self.dic = gensim.corpora.Dictionary.load(filename)
+
+    def generate_dictionary(self):
+        self.dic = gensim.corpora.Dictionary(self.documents)
+
+    def generate_corpus(self):
+        self.corpus = [self.dic.doc2bow(tokens) for tokens in self.documents]
+
     def generate_corpus_matrix(self):
+        if self.corpus is None:
+            self.generate_bag_of_words()
+
         data = []
         row  = []
         col  = []
-        for n,doc in enumerate(self.corpus):
-            for w,c in doc:
+        for n, doc in enumerate(self.corpus):
+            for w, c in doc:
                 col.append(n)
                 row.append(w)
                 data.append(c)
 
-        nSamples = len(self.corpus)
-        nFeatures = len(self.dic)
-        self.csr_matrix =  csr_matrix((data, (col,row)), shape=(nSamples, nFeatures))
-        
-        
-    def generate_dictionary(self):
-        self.dic = gensim.corpora.Dictionary(self.documents)
+        self.csr_matrix = csr_matrix((data, (col,row)), shape=(self.num_samples, self.num_features))
 
-    def generate_bag_of_words(self):
-        if self.dic is None:
-            self.generate_dictionary()
+    def save_dictionary(self, filename):
+        self.dic.save(filename)
 
-        self.corpus = [self.dic.doc2bow(tokens) for tokens in self.documents]
+forward_pattern = re.compile('[\r\n]>[^\r\n]*[\r\n]')
+html_patten = re.compile('<[^<]+?>')
+mime_pattern = re.compile('=\d\d')
+dot_pattern = re.compile('\.')
 
 def filter_email(text):
     # forward/reply lines
-    text = re.sub('[\r\n]>[^\r\n]*[\r\n]', '\n', text)
+    text = forward_pattern.sub('\n', text)
     # html
-    text = re.sub('<[^<]+?>', ' ', text)
+    text = html_patten.sub(' ', text)
     # mime
-    text = re.sub('=\d\d', ' ', text)
+    text = mime_pattern.sub(' ', text)
     # sequence of dots
-    return re.sub('\.', '. ', text)
+    return dot_pattern.sub('. ', text)
 
 def load_vraagtekst_corpus(documents_filename):
     with open(documents_filename, 'r') as f:
@@ -168,9 +195,9 @@ def load_enron_corpus(directory):
     return corpus
 
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        print("Usage: corpus.py enron_directory enron_pickle_file.pkl")
-        sys.exit(1)
+    # if len(sys.argv) != 3:
+    #     print("Usage: corpus.py enron_directory enron_pickle_file.pkl")
+    #     sys.exit(1)
 
     corpus = load_enron_corpus(sys.argv[1])
     print("Emails: {0}".format(len(corpus.documents)))
@@ -186,4 +213,3 @@ if __name__ == '__main__':
     topicWords, topicWeightedWords = topic_words(lda, corpus.dic)
     print("topicWords:",topicWords)
     print("topicWeightedWords:", topicWeightedWords)
-    
