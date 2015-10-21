@@ -10,7 +10,6 @@ from scipy.sparse import csr_matrix
 from pyspark.mllib.linalg import Matrix
 from pyspark.mllib.linalg import Matrices
 
-import pandas as pd
 from wordcloud import WordCloud
 import gensim
 
@@ -55,6 +54,8 @@ corpusIndexed = corpusMapped.zipWithIndex().map(lambda x: [x[1], x[0]]).cache()
 nTopics = 10
 ldaModel = LDA.train(corpusIndexed, k=nTopics)
 
+# Dirty trick -- use sklearn LDA to do the transform step
+# This should be possible on Spark, but can't figure out how
 from sklearn.decomposition import LatentDirichletAllocation
 
 lda = LatentDirichletAllocation(n_topics=nTopics, max_iter=1,
