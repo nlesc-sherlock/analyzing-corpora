@@ -12,6 +12,32 @@ import multiprocessing
 
 
 class Corpus(object):
+    standard_nlp_tags = frozenset([
+        # None, u'(', u')', u',', u'.', u'<notranslation>damesbladen', # extras
+        # u'CC', # conjunction
+        # u'CD', # cardinal (numbers)
+        # u'DT', # determiner (de, het)
+        u'FW', # foreign word
+        # u'IN', #conjunction
+        u'JJ', # adjectives -- # u'JJR', u'JJS',
+        # u'MD', # Modal verb
+        u'NN', u'NNP', u'NNPS', u'NNS', # Nouns
+        # u'PRP', # Pronouns -- # u'PRP$',
+        u'RB', # adverb
+        u'RP', # adverb
+        # u'SYM', # Symbol
+        # u'TO', # infinitival to
+        # u'UH', # interjection
+        u'VB', u'VBD', u'VBG', u'VBN', u'VBP', u'VBZ', # Verb forms
+        ])
+    standard_stopwords = frozen_set(
+        nltk.corpus.stopwords.words('english') +
+        ['', '.', ',', '?', '(', ')', ',', ':', "'",
+         u'``', u"''", ';','-','!','%','&','...','=', '>', '<',
+         '#', '_', '~', '+', '*', '/', '\\', '[', ']', '|'
+         u'\u2019', u'\u2018', u'\u2013', u'\u2022',
+         u'\u2014', u'\uf02d', u'\u20ac', u'\u2026'])
+
     def __init__(self, documents = None, metadata = None, nlp_tags=None, exclude_words=None):
         if documents is None:
             self.documents = []
@@ -28,13 +54,13 @@ class Corpus(object):
         self.corpus = []
         
         if nlp_tags is None:
-            self._nlp_tags = None
+            self.nlp_tags = Corpus.standard_nlp_tags
         else:
-            self._nlp_tags = frozenset(nlp_tags)
+            self.nlp_tags = frozenset(nlp_tags)
         if exclude_words is None:
-            self._exclude_words = None
+            self.exclude_words = Corpus.standard_stopwords
         else:
-            self._exclude_words = frozenset(exclude_words)
+            self.exclude_words = frozenset(exclude_words)
 
     def add_file(self, fp, metadata={}, update_dictionary=True):
         self.add_text(fp.read(), metadata)
@@ -58,41 +84,6 @@ class Corpus(object):
         if self.dic is None:
             self.generate_dictionary()
         return len(self.dic)
-
-    @property
-    def nlp_tags(self):
-        if self._nlp_tags is None:
-            self._nlp_tags = frozenset([
-                # None, u'(', u')', u',', u'.', u'<notranslation>damesbladen', # extras
-                # u'CC', # conjunction
-                # u'CD', # cardinal (numbers)
-                # u'DT', # determiner (de, het)
-                u'FW', # foreign word
-                # u'IN', #conjunction
-                u'JJ', # adjectives -- # u'JJR', u'JJS',
-                # u'MD', # Modal verb
-                u'NN', u'NNP', u'NNPS', u'NNS', # Nouns
-                # u'PRP', # Pronouns -- # u'PRP$',
-                u'RB', # adverb
-                u'RP', # adverb
-                # u'SYM', # Symbol
-                # u'TO', # infinitival to
-                # u'UH', # interjection
-                u'VB', u'VBD', u'VBG', u'VBN', u'VBP', u'VBZ', # Verb forms
-                ])
-        return self._nlp_tags
-
-    @property
-    def exclude_words(self):
-        if self._exclude_words is None:
-            stopwords = nltk.corpus.stopwords.words('english')
-            stopwords += ['', '.', ',', '?', '(', ')', ',', ':', "'",
-                          u'``', u"''", ';','-','!','%','&','...','=', '>', '<',
-                          '#', '_', '~', '+', '*', '/', '\\', '[', ']', '|']
-            stopwords += [u'\u2019', u'\u2018', u'\u2013', u'\u2022',
-                          u'\u2014', u'\uf02d', u'\u20ac', u'\u2026']
-            self._exclude_words = frozenset(stopwords)
-        return self._exclude_words
 
     def tokenize(self, text, nlp_tags=None, exclude_words=None):
         if nlp_tags is None:
@@ -152,7 +143,7 @@ def load_files(user, path, files, result_queue = None):
         metadata = {'user': user, 'mailbox': mailbox, 'directory': path}
         with open(os.path.join(path, email)) as f:
             text = filter_email(f.read())
-            corpus.add_text(text, metadata)
+            corpus.add_text(text, metadata, update_dictionary=False)
     if result_queue is None:
         return corpus
     else:
