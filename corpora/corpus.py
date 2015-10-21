@@ -7,6 +7,7 @@ import sys
 import os
 import progressbar
 from time import time
+import re
 
 class Corpus(object):
     def __init__(self, documents = [], metadata = [], nlp_tags=None, exclude_words=None):
@@ -89,6 +90,15 @@ class Corpus(object):
 
         self.corpus = [self.dic.doc2bow(tokens) for tokens in self.documents]
 
+def filter_email(text):
+    # forward/reply lines
+    text = re.sub('[\r\n]>[^\r\n]*[\r\n]', '\n', text)
+    # html
+    text = re.sub('<[^<]+?>', ' ', text)
+    # mime
+    text = re.sub('=\d\d', ' ', text)
+    # sequence of dots
+    return re.sub('\.', '. ', text)
 
 def load_vraagtekst_corpus(documents_filename):
     with open(documents_filename, 'r') as f:
@@ -124,7 +134,8 @@ def load_enron_corpus(directory):
             for email in files:
                 metadata = {'user': user, 'mailbox': mailbox, 'directory': root}
                 with open(os.path.join(root, email)) as f:
-                    corpus.add_file(f, metadata)
+                    text = filter_email(f.read())
+                    corpus.add_text(text, metadata)
                 if len(corpus.documents) % 10 == 0:
                     bar.update(len(corpus.documents))
 
