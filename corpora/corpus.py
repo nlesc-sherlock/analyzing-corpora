@@ -7,11 +7,19 @@ import sys
 import os
 import progressbar
 from time import time
+from scipy.sparse import csr_matrix
+import numpy as np
+from matplotlib.pyplot import savefig, subplot, figure, imshow, plot, axis, title
+from scikit import *
 
 class Corpus(object):
     def __init__(self, documents = [], metadata = [], nlp_tags=None, exclude_words=None):
         self.documents = documents
         self.metadata = metadata
+        self.dic = None
+        self.csr_matrix = None
+        #self.lda = None
+        
         if nlp_tags is None:
             self._nlp_tags = None
         else:
@@ -80,6 +88,21 @@ class Corpus(object):
 
         return words
 
+    def generate_corpus_matrix(self):
+        data = []
+        row  = []
+        col  = []
+        for n,doc in enumerate(self.corpus):
+            for w,c in doc:
+                col.append(n)
+                row.append(w)
+                data.append(c)
+
+        nSamples = len(self.corpus)
+        nFeatures = len(self.dic)
+        self.csr_matrix =  csr_matrix((data, (col,row)), shape=(nSamples, nFeatures))
+        
+        
     def generate_dictionary(self):
         self.dic = gensim.corpora.Dictionary(self.documents)
 
@@ -101,6 +124,7 @@ def load_vraagtekst_corpus(documents_filename):
     dic = gensim.corpora.Dictionary(vraagTokens)
     corpus = [dic.doc2bow(text) for text in vraagTokens]
     return (dic, corpus, data_ppl)
+
 
 
 def load_enron_corpus(directory):
@@ -141,3 +165,14 @@ if __name__ == '__main__':
     print("Emails: {0}".format(len(corpus.documents)))
     with open(sys.argv[2], 'wb') as f:
         pickle.dump({'tokens': corpus.documents, 'metadata': corpus.metadata}, f)
+        
+    corpus.generate_bag_of_words()
+    corpus.generate_corpus_matrix()
+    print("nSamples (docs) : {0}".format(len(corpus.corpus)))
+    print("nFeatures(words): {0}".format(len(corpus.dic)))
+    #corpus.scikit_lda(n_topics=5)
+    lda = scikit_lda(corpus.csr_matrix, n_topics = 5)
+    topicWords, topicWeightedWords = topic_words(lda, corpus.dic)
+    print("topicWords:",topicWords)
+    print("topicWeightedWords:", topicWeightedWords)
+    
