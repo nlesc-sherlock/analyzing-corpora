@@ -14,3 +14,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+import numpy as np
+
+
+def select_top(array, n):
+    return array.argsort()[:-n - 1:-1], np.sort(array)[:-n - 1:-1]

@@ -1,3 +1,20 @@
+#!/usr/bin/env python
+# SIM-CITY client
+#
+# Copyright 2015 Netherlands eScience Center <info@esciencecenter.nl>
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import gensim
 import pickle
 import nltk
@@ -9,7 +26,7 @@ from scipy.sparse import csr_matrix
 import re
 import multiprocessing
 import pandas as pd
-import numpy as np
+
 
 class Corpus(object):
     standard_nlp_tags = frozenset([
@@ -17,28 +34,29 @@ class Corpus(object):
         # u'CC', # conjunction
         # u'CD', # cardinal (numbers)
         # u'DT', # determiner (de, het)
-        u'FW', # foreign word
+        u'FW',  # foreign word
         # u'IN', #conjunction
-        u'JJ', # adjectives -- # u'JJR', u'JJS',
+        u'JJ',  # adjectives -- # u'JJR', u'JJS',
         # u'MD', # Modal verb
-        u'NN', u'NNP', u'NNPS', u'NNS', # Nouns
+        u'NN', u'NNP', u'NNPS', u'NNS',  # Nouns
         # u'PRP', # Pronouns -- # u'PRP$',
-        u'RB', # adverb
-        u'RP', # adverb
+        u'RB',  # adverb
+        u'RP',  # adverb
         # u'SYM', # Symbol
         # u'TO', # infinitival to
         # u'UH', # interjection
-        u'VB', u'VBD', u'VBG', u'VBN', u'VBP', u'VBZ', # Verb forms
-        ])
+        u'VB', u'VBD', u'VBG', u'VBN', u'VBP', u'VBZ',  # Verb forms
+    ])
     standard_stopwords = frozenset(
         nltk.corpus.stopwords.words('english') +
         ['', '.', ',', '?', '(', ')', ',', ':', "'",
-         u'``', u"''", ';','-','!','%','&','...','=', '>', '<',
+         u'``', u"''", ';', '-', '!', '%', '&', '...', '=', '>', '<',
          '#', '_', '~', '+', '*', '/', '\\', '[', ']', '|'
          u'\u2019', u'\u2018', u'\u2013', u'\u2022',
          u'\u2014', u'\uf02d', u'\u20ac', u'\u2026'])
 
-    def __init__(self, documents = None, metadata = None, dictionary = None, nlp_tags=None, exclude_words=None):
+    def __init__(self, documents=None, metadata=None, dictionary=None,
+                 nlp_tags=None, exclude_words=None):
         if documents is None:
             self.documents = []
         else:
@@ -58,7 +76,7 @@ class Corpus(object):
 
         self._corpus = None
         self._csr_matrix = None
-        
+
         if nlp_tags is None:
             self.nlp_tags = Corpus.standard_nlp_tags
         else:
@@ -114,7 +132,8 @@ class Corpus(object):
 
     def indexed_corpus(self):
         if self._corpus is None:
-            self._corpus = [self.dic.doc2bow(tokens) for tokens in self.documents]
+            self._corpus = [self.dic.doc2bow(tokens)
+                            for tokens in self.documents]
         return self._corpus
 
     def _reset_index(self):
@@ -126,15 +145,17 @@ class Corpus(object):
             index = self.indexed_corpus()
 
             data = []
-            row  = []
-            col  = []
+            row = []
+            col = []
             for n, doc in enumerate(index):
                 for w, c in doc:
                     col.append(n)
                     row.append(w)
                     data.append(c)
 
-            self._csr_matrix = csr_matrix((data, (col,row)), shape=(self.num_samples, self.num_features))
+            self._csr_matrix = csr_matrix(
+                (data, (col, row)),
+                shape=(self.num_samples, self.num_features))
 
         return self._csr_matrix
 
@@ -169,7 +190,6 @@ class Corpus(object):
                       nlp_tags=self.nlp_tags,
                       exclude_words=self.exclude_words)
 
-
     def with_property(self, name, value):
         return self.with_mask(self.metadata_frame[name] == value)
 
@@ -188,7 +208,7 @@ class Corpus(object):
                       exclude_words=self.exclude_words)
 
 
-def load_files(user, path, files, result_queue = None):
+def load_files(user, path, files, result_queue=None):
     corpus = Corpus()
     mailbox = os.path.basename(path)
     for email in files:
@@ -207,22 +227,23 @@ html_patten = re.compile('<[^<]+?>')
 mime_pattern = re.compile('=\d\d')
 dot_pattern = re.compile('\.\.+')
 
+
 def filter_email(text):
     text = forward_pattern.sub('\n', text)
     text = html_patten.sub(' ', text)
     text = mime_pattern.sub(' ', text)
     return dot_pattern.sub('. ', text)
 
+
 def load_vraagtekst_corpus(documents_filename):
     with open(documents_filename, 'r') as f:
         data_vraag = pickle.load(f)
-    data_ppl = data_vraag[data_vraag['individu of groep']=='mijzelf']
-    data_org = data_vraag[data_vraag['individu of groep']!='mijzelf']
 
     metadata_columns = data_vraag.columns.difference(['SentToks'])
-    metadata = data_vraag.ix[:,metadata_columns].to_dict('records')
+    metadata = data_vraag.ix[:, metadata_columns].to_dict('records')
     return Corpus(documents=data_vraag['SentToks'].tolist(),
                   metadata=metadata)
+
 
 def count_files(directory):
     total_size = 0
@@ -309,14 +330,17 @@ if __name__ == '__main__':
     print("Emails: {0}".format(len(corpus.documents)))
 
     with open(sys.argv[2], 'wb') as f:
-        pickle.dump({'tokens': corpus.documents, 'metadata': corpus.metadata}, f)
-        
-    corpus.generate_bag_of_words()
-    corpus.generate_corpus_matrix()
-    print("nSamples (docs) : {0}".format(len(corpus.corpus)))
-    print("nFeatures(words): {0}".format(len(corpus.dic)))
-    #corpus.scikit_lda(n_topics=5)
-    lda = scikit_lda(corpus.csr_matrix, n_topics = 5)
-    topicWords, topicWeightedWords = topic_words(lda, corpus.dic)
-    print("topicWords:",topicWords)
-    print("topicWeightedWords:", topicWeightedWords)
+        pickle.dump(
+            {'tokens': corpus.documents, 'metadata': corpus.metadata}, f)
+    print "saving dictionary"
+    corpus.save_dictionary(sys.argv[3])
+
+    # corpus.generate_bag_of_words()
+    # corpus.generate_corpus_matrix()
+    # print("nSamples (docs) : {0}".format(len(corpus.corpus)))
+    # print("nFeatures(words): {0}".format(len(corpus.dic)))
+    # #corpus.scikit_lda(n_topics=5)
+    # lda = scikit_lda(corpus.csr_matrix, n_topics = 5)
+    # topicWords, topicWeightedWords = topic_words(lda, corpus.dic)
+    # print("topicWords:",topicWords)
+    # print("topicWeightedWords:", topicWeightedWords)
