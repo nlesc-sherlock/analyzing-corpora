@@ -58,3 +58,35 @@ def test_index():
 	assert_equals(3, c.num_features)
 	assert_equals(3, newc.num_features)
 	assert_array_equal(docs[1], newc.documents[0])
+
+def test_mask():
+	c, docs = mock_corpus()
+	newc = c.with_mask([True, False])
+	assert_equals(2, c.num_samples)
+	assert_equals(1, newc.num_samples)
+	# dictionary does not change
+	assert_equals(3, c.num_features)
+	assert_equals(3, newc.num_features)
+	assert_array_equal(docs[0], newc.documents[0])
+
+	newc = c.with_mask([False, True])
+	assert_equals(1, newc.num_samples)
+	assert_array_equal(docs[1], newc.documents[0])
+
+	newc = c.with_mask([True, True])
+	assert_equals(2, newc.num_samples)
+
+	newc = c.with_mask([False, False])
+	assert_equals(0, newc.num_samples)
+	# dictionary does not change
+	assert_equals(3, newc.num_features)
+
+def test_merge():
+	c, docs = mock_corpus()
+	otherc, otherdocs = mock_corpus()
+
+	c.merge(otherc)
+	assert_equals(4, c.num_samples)
+	assert_array_equal(docs + docs, c.documents)
+	assert_equals(3, c.num_features)
+	assert_equals((4, 3), c.sparse_matrix().shape)
