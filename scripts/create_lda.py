@@ -46,9 +46,10 @@ if __name__ == '__main__':
     corpus = Corpus(documents=data['tokens'], metadata=data['metadata'],
                     dictionary=dic)
 
-    print("calculating LDA")
+    print("calculating LDA of {0} topics".format(args.topics))
     lda = ScikitLda(corpus, n_topics=args.topics)
 
+    print("writing to file")
     output_file = os.path.join(args.output_folder,
                                'lda_{0}.pkl'.format(args.topics))
     joblib.dump(lda.lda, output_file)
