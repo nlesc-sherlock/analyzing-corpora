@@ -7,9 +7,9 @@ import os
 import progressbar
 from scipy.sparse import csr_matrix
 import re
-from scikit import *
 import multiprocessing
-
+import pandas as pd
+import numpy as np
 
 class Corpus(object):
     standard_nlp_tags = frozenset([
@@ -30,7 +30,7 @@ class Corpus(object):
         # u'UH', # interjection
         u'VB', u'VBD', u'VBG', u'VBN', u'VBP', u'VBZ', # Verb forms
         ])
-    standard_stopwords = frozen_set(
+    standard_stopwords = frozenset(
         nltk.corpus.stopwords.words('english') +
         ['', '.', ',', '?', '(', ')', ',', ':', "'",
          u'``', u"''", ';','-','!','%','&','...','=', '>', '<',
@@ -38,7 +38,7 @@ class Corpus(object):
          u'\u2019', u'\u2018', u'\u2013', u'\u2022',
          u'\u2014', u'\uf02d', u'\u20ac', u'\u2026'])
 
-    def __init__(self, documents = None, metadata = None, nlp_tags=None, exclude_words=None):
+    def __init__(self, documents = None, metadata = None, dictionary = None, nlp_tags=None, exclude_words=None):
         if documents is None:
             self.documents = []
         else:
@@ -49,9 +49,15 @@ class Corpus(object):
         else:
             self.metadata = metadata
 
+        self._metadata_frame = None
+
         self.csr_matrix = None
-        self.dic = gensim.corpora.Dictionary()
-        self.corpus = []
+        if dictionary is None:
+            self.dic = gensim.corpora.Dictionary(self.documents)
+        else:
+            self.dic = dictionary
+
+        self.corpus = None
         
         if nlp_tags is None:
             self.nlp_tags = Corpus.standard_nlp_tags
@@ -69,20 +75,16 @@ class Corpus(object):
         tokens = self.tokenize(text)
         self.documents.append(tokens)
         self.metadata.append(metadata)
+        self._metadata_frame = None
         if update_dictionary:
             self.dic.add_documents([tokens])
 
     @property
     def num_samples(self):
-        if self.corpus is None:
-            self.generate_bag_of_words()
-
-        return len(self.corpus)
+        return len(self.documents)
 
     @property
     def num_features(self):
-        if self.dic is None:
-            self.generate_dictionary()
         return len(self.dic)
 
     def tokenize(self, text, nlp_tags=None, exclude_words=None):
@@ -103,27 +105,31 @@ class Corpus(object):
 
     def load_dictionary(self, filename):
         self.dic = gensim.corpora.Dictionary.load(filename)
+        self.corpus = None
 
     def generate_dictionary(self):
         self.dic = gensim.corpora.Dictionary(self.documents)
+        self.corpus = None
 
-    def generate_corpus(self):
-        self.corpus = [self.dic.doc2bow(tokens) for tokens in self.documents]
-
-    def generate_corpus_matrix(self):
+    def indexed_corpus(self):
         if self.corpus is None:
-            self.generate_bag_of_words()
+            self.corpus = [self.dic.doc2bow(tokens) for tokens in self.documents]
+        return self.corpus
+
+    def sparse_matrix(self):
+        index = self.indexed_corpus()
 
         data = []
         row  = []
         col  = []
-        for n, doc in enumerate(self.corpus):
+        for n, doc in enumerate(index):
             for w, c in doc:
                 col.append(n)
                 row.append(w)
                 data.append(c)
 
         self.csr_matrix = csr_matrix((data, (col,row)), shape=(self.num_samples, self.num_features))
+        return self.csr_matrix
 
     def save_dictionary(self, filename):
         self.dic.save(filename)
@@ -131,9 +137,50 @@ class Corpus(object):
     def merge(self, other):
         self.documents = self.documents + other.documents
         self.metadata = self.metadata + other.metadata
+        self._metadata_frame = None
         self.dic.merge_with(other.dic)
         self.csr_matrix = None
         self.corpus = None
+
+    @property
+    def metadata_frame(self):
+        if self._metadata_frame is None:
+            self._metadata_frame = pd.DataFrame.from_dict(self.metadata)
+        return self._metadata_frame
+
+    def with_index(self, idx):
+        return Corpus(documents=[self.documents[idx]],
+                      metadata=[self.metadata[idx]],
+                      dictionary=self.dic,
+                      nlp_tags=self.nlp_tags,
+                      exclude_words=self.exclude_words)
+
+    def with_mask(self, mask):
+        new_docs = [d for i, d in enumerate(self.documents) if mask[i]]
+        return Corpus(documents=new_docs,
+                      metadata=self.metadata_frame[mask].to_dict('records'),
+                      dictionary=self.dic,
+                      nlp_tags=self.nlp_tags,
+                      exclude_words=self.exclude_words)
+
+
+    def with_property(self, name, value):
+        return self.with_mask(self.metadata_frame[name] == value)
+
+    def word(self, i):
+        return self.dic[i]
+
+    def filter_extremes(self, *args, **kwargs):
+        self.dic.filter_extremes(*args, **kwargs)
+        self.corpus = None
+        self.csr_matrix = None
+
+    def with_tokens(self, tokens):
+        return Corpus(documents=[tokens],
+                      metadata=None,
+                      dictionary=self.dic,
+                      nlp_tags=self.nlp_tags,
+                      exclude_words=self.exclude_words)
 
 
 def load_files(user, path, files, result_queue = None):
@@ -167,11 +214,10 @@ def load_vraagtekst_corpus(documents_filename):
     data_ppl = data_vraag[data_vraag['individu of groep']=='mijzelf']
     data_org = data_vraag[data_vraag['individu of groep']!='mijzelf']
 
-    vraagTokens = data_vraag['SentToks'].tolist()
-
-    dic = gensim.corpora.Dictionary(vraagTokens)
-    corpus = [dic.doc2bow(text) for text in vraagTokens]
-    return (dic, corpus, data_ppl)
+    metadata_columns = data_vraag.columns.difference(['SentToks'])
+    metadata = data_vraag.ix[:,metadata_columns].to_dict('records')
+    return Corpus(documents=data_vraag['SentToks'].tolist(),
+                  metadata=metadata)
 
 def count_files(directory):
     total_size = 0
