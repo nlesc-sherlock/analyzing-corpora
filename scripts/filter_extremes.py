@@ -52,7 +52,7 @@ if __name__ == '__main__':
         metadata = data['metadata']
 
     corpus = Corpus(documents=tokens, metadata=metadata, dictionary=dic)
-    corpus.filter_extremes(no_above=args.no_above, no_below=args.no_below, keep_n=args.keep)
+    corpus.filter_extremes(no_above=float(args.no_above), no_below=int(args.no_below), keep_n=int(args.keep))
 
     print("writing to file")
     output_file = os.path.join(args.output_folder,
