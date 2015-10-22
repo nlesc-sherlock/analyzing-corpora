@@ -23,15 +23,18 @@ from matplotlib.pyplot import subplot, figure, imshow, plot, axis, title
 
 class ScikitLda(object):
 
-    def __init__(self, corpus, n_topics, max_iter=5, learning_method='online',
-                 learning_offset=50., **kwargs):
-        self.lda = LatentDirichletAllocation(n_topics=n_topics,
-                                             max_iter=max_iter,
-                                             learning_method=learning_method,
-                                             learning_offset=learning_offset,
-                                             **kwargs)
+    def __init__(self, corpus, lda=None, n_topics=10, max_iter=5,
+                 learning_method='online', learning_offset=50., **kwargs):
+        if lda is None:
+            self.lda = LatentDirichletAllocation(
+                n_topics=n_topics, max_iter=max_iter,
+                learning_method=learning_method,
+                learning_offset=learning_offset, **kwargs)
+            self.lda.fit(corpus.sparse_matrix())
+        else:
+            self.lda = lda
+
         self._corpus = corpus
-        self.lda.fit(corpus.sparse_matrix())
         self._weights = None
 
     @property
