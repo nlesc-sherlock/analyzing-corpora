@@ -51,13 +51,13 @@ class Corpus(object):
 
         self._metadata_frame = None
 
-        self.csr_matrix = None
         if dictionary is None:
             self.dic = gensim.corpora.Dictionary(self.documents)
         else:
             self.dic = dictionary
 
-        self.corpus = None
+        self._corpus = None
+        self._csr_matrix = None
         
         if nlp_tags is None:
             self.nlp_tags = Corpus.standard_nlp_tags
@@ -78,6 +78,7 @@ class Corpus(object):
         self._metadata_frame = None
         if update_dictionary:
             self.dic.add_documents([tokens])
+            self._reset_index()
 
     @property
     def num_samples(self):
@@ -105,31 +106,37 @@ class Corpus(object):
 
     def load_dictionary(self, filename):
         self.dic = gensim.corpora.Dictionary.load(filename)
-        self.corpus = None
+        self._reset_index()
 
     def generate_dictionary(self):
         self.dic = gensim.corpora.Dictionary(self.documents)
-        self.corpus = None
+        self._reset_index()
 
     def indexed_corpus(self):
-        if self.corpus is None:
-            self.corpus = [self.dic.doc2bow(tokens) for tokens in self.documents]
-        return self.corpus
+        if self._corpus is None:
+            self._corpus = [self.dic.doc2bow(tokens) for tokens in self.documents]
+        return self._corpus
+
+    def _reset_index(self):
+        self._corpus = None
+        self._csr_matrix = None
 
     def sparse_matrix(self):
-        index = self.indexed_corpus()
+        if self._csr_matrix is None:
+            index = self.indexed_corpus()
 
-        data = []
-        row  = []
-        col  = []
-        for n, doc in enumerate(index):
-            for w, c in doc:
-                col.append(n)
-                row.append(w)
-                data.append(c)
+            data = []
+            row  = []
+            col  = []
+            for n, doc in enumerate(index):
+                for w, c in doc:
+                    col.append(n)
+                    row.append(w)
+                    data.append(c)
 
-        self.csr_matrix = csr_matrix((data, (col,row)), shape=(self.num_samples, self.num_features))
-        return self.csr_matrix
+            self._csr_matrix = csr_matrix((data, (col,row)), shape=(self.num_samples, self.num_features))
+
+        return self._csr_matrix
 
     def save_dictionary(self, filename):
         self.dic.save(filename)
@@ -139,8 +146,7 @@ class Corpus(object):
         self.metadata = self.metadata + other.metadata
         self._metadata_frame = None
         self.dic.merge_with(other.dic)
-        self.csr_matrix = None
-        self.corpus = None
+        self._reset_index()
 
     @property
     def metadata_frame(self):
@@ -172,8 +178,7 @@ class Corpus(object):
 
     def filter_extremes(self, *args, **kwargs):
         self.dic.filter_extremes(*args, **kwargs)
-        self.corpus = None
-        self.csr_matrix = None
+        self._reset_index()
 
     def with_tokens(self, tokens):
         return Corpus(documents=[tokens],
