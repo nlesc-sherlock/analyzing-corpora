@@ -31,7 +31,7 @@ def topic_words(lda, corpus):
     return (topicWords, topicWeightedWords)
 
 
-def topics_by_property(lda, corpus, metadata_property, delta = 5):
+def topics_by_numeric_property(lda, corpus, metadata_property, delta = 5):
     topicsByProperty = np.zeros((metadata_property.max()+1, lda.n_topics))
 
     for prop_value in np.arange(metadata_property.max()+1): 
@@ -44,6 +44,19 @@ def topics_by_property(lda, corpus, metadata_property, delta = 5):
                 topicsByProperty[prop_value, topic] += weight / len(indexes)
 
     return topicsByProperty
+
+
+def topics_by_discrete_property(lda, corpus, metadata_property):
+    values = np.unique(metadata_property)
+    topicsByProperty = np.empty((len(values), lda.n_topics))
+    allWeights = np.asarray(lda.transform(corpus.sparse_matrix()))
+    allWeights = (allWeights.T / allWeights.sum(axis=1)).T
+
+    for i, prop_value in enumerate(values):
+        prop_weights = allWeights[metadata_property == prop_value]
+        topicsByProperty[i] = np.average(prop_weights, axis=0)
+
+    return (topicsByProperty, values)
 
 def plot_wordcloud_with_property(topicWeightedWords, topicsByProperty):
     figure(figsize=(16,40))
@@ -71,6 +84,9 @@ if __name__ == '__main__':
 
     lda = scikit_lda(corpus.sparse_matrix(), n_topics=10)
     topicWords, topicWeightedWords = topic_words(lda, corpus)
-    topicsByAge = topics_by_property(lda, corpus, corpus.metadata_frame['Leeftijd'])
+    topicsByOrg, orgs = topics_by_discrete_property(lda, corpus, corpus.metadata_frame['individu of groep'])
+    for i, org in enumerate(orgs):
+        print org, '-', topicWords[np.argmax(topicsByOrg[i])][0]
+    topicsByAge = topics_by_numeric_property(lda, corpus, corpus.metadata_frame['Leeftijd'])
     plot_wordcloud_with_property(topicWeightedWords, topicsByAge)
     savefig('topics.png')
