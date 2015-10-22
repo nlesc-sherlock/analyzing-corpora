@@ -25,8 +25,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description="train and save the LDA parser with different number of topics")
     parser.add_argument('output_folder')
-    parser.add_argument('parsed_document',
-        help="python pickle file, containing tokens and metadata")
+    parser.add_argument('-p', '--parsed-document',
+        help="python pickle file, containing tokens and metadata", default=None)
     parser.add_argument('-d', '--dictionary', default=None)
     parser.add_argument('-a', '--no-above', default=0.5)
     parser.add_argument('-b', '--no-below', default=5)
@@ -34,17 +34,24 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.dictionary is None:
+        if args.parsed_document is None:
+            raise ValueError("Need parsed document or dictionary")
         dic = None
     else:
         print("loading dictionary")
         dic = gensim.corpora.Dictionary.load(args.dictionary)
 
-    print("loading pickled data")
-    with open(args.parsed_document) as f:
-        data = pickle.load(f)
+    if args.parsed_document is None:
+        tokens = None
+        metadata = None
+    else:
+        print("loading pickled data")
+        with open(args.parsed_document) as f:
+            data = pickle.load(f)
+        tokens = data['tokens']
+        metadata = data['metadata']
 
-    corpus = Corpus(documents=data['tokens'], metadata=data['metadata'],
-                    dictionary=dic)
+    corpus = Corpus(documents=tokens, metadata=metadata, dictionary=dic)
     corpus.filter_extremes(no_above=args.no_above, no_below=args.no_below, keep_n=args.keep)
 
     print("writing to file")
