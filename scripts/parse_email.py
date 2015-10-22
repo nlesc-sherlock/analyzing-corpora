@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import print_function
 import argparse
 from corpora import corpus
 import pickle
@@ -42,5 +43,5 @@ if __name__ == '__main__':
         pickle.dump({'tokens': c.documents, 'metadata': c.metadata}, f)
 
     if args.dictionary is not None:
-        print "saving dictionary"
+        print("saving dictionary")
         c.save_dictionary(args.dictionary)

@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import print_function
 from corpora.scikit import (ScikitLda, plot_wordcloud_with_property,
                             topics_by_integer_property,
                             topics_by_discrete_property)
@@ -33,8 +34,8 @@ if __name__ == '__main__':
     topicWords, topicWeightedWords = lda.topic_words()
 
     for topic_idx, wordsInTopic in enumerate(topicWords):
-        print "Topic #%d:" % topic_idx
-        print " ".join(wordsInTopic)
+        print("Topic #{0}:".format(topic_idx))
+        print(" ".join(wordsInTopic))
 
     topicsByOrg, orgs = topics_by_discrete_property(
         lda, corpus.metadata_frame['individu of groep'])

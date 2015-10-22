@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import print_function
 import gensim
 import pickle
 import nltk
@@ -255,7 +256,7 @@ def count_files(directory):
 
 def load_enron_corpus(directory):
     total_size = count_files(directory)
-    print "reading {0} files".format(total_size)
+    print("reading {0} files".format(total_size))
     corpus = Corpus()
 
     bar = progressbar.ProgressBar(
@@ -277,7 +278,7 @@ def load_enron_corpus(directory):
 
 def load_enron_corpus_mp(directory, num_processes=2):
     total_size = count_files(directory)
-    print "reading {0} files".format(total_size)
+    print("reading {0} files".format(total_size))
     corpus = Corpus()
 
     manager = multiprocessing.Manager()
@@ -289,7 +290,7 @@ def load_enron_corpus_mp(directory, num_processes=2):
         widgets=[progressbar.Percentage(), ' ', progressbar.Bar('=', '[', ']'),
                  ' ', progressbar.widgets.ETA()])
 
-    print "assigning tasks"
+    print("assigning tasks")
     bar.start()
 
     files_added = 0
@@ -303,7 +304,7 @@ def load_enron_corpus_mp(directory, num_processes=2):
                 bar.update(files_added)
     bar.finish()
 
-    print "reading results"
+    print("reading results")
     bar = progressbar.ProgressBar(
         maxval=total_size,
         widgets=[progressbar.Percentage(), ' ', progressbar.Bar('=', '[', ']'),
@@ -332,7 +333,7 @@ if __name__ == '__main__':
     with open(sys.argv[2], 'wb') as f:
         pickle.dump(
             {'tokens': corpus.documents, 'metadata': corpus.metadata}, f)
-    print "saving dictionary"
+    print("saving dictionary")
     corpus.save_dictionary(sys.argv[3])
 
     # corpus.generate_bag_of_words()
