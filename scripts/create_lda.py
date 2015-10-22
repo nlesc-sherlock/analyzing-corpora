@@ -19,6 +19,7 @@ import pickle
 import joblib
 import os
 import gensim
+import argparse
 from corpora.corpus import Corpus
 from corpora.scikit import ScikitLda
 
@@ -37,7 +38,7 @@ if __name__ == '__main__':
         dic = None
     else:
         print("loading dictionary")
-        dic = gensim.corpora.Dictionary.load(filename)
+        dic = gensim.corpora.Dictionary.load(args.dictionary)
 
     print("loading pickled data")
     with open(args.parsed_document) as f:
