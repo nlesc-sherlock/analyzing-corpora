@@ -58,6 +58,6 @@ if __name__ == '__main__':
     output_file = os.path.join(args.output_folder,
                                'filtered_{0}_{1}_{2}.dic'.format(args.no_above,
                                                                  args.no_below,
-                                                                 args.keep_n))
+                                                                 args.keep))
 
     corpus.save_dictionary(output_file)
