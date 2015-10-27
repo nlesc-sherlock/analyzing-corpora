@@ -71,9 +71,9 @@ class Corpus(object):
         self._metadata_frame = None
 
         if dictionary is None:
-            self.dic = gensim.corpora.Dictionary(self.documents)
+            self._dic = gensim.corpora.Dictionary(self.documents)
         else:
-            self.dic = dictionary
+            self._dic = dictionary
 
         self._corpus = None
         self._csr_matrix = None
@@ -123,9 +123,24 @@ class Corpus(object):
 
         return words
 
-    def load_dictionary(self, filename):
-        self.dic = gensim.corpora.Dictionary.load(filename)
-        self._reset_index()
+    @classmethod
+    def load(cls, filename=None, dictionary_filename=None):
+        if filename is None and dictionary_filename is None:
+            raise ValueError("Need corpus or dictionary filename")
+
+        if filename is not None:
+            with open(filename, 'rb') as f:
+                data = pickle.load(f)
+        else:
+            data = {'tokens': None, 'metadata': None}
+
+        if dictionary_filename is not None:
+            dic = gensim.corpora.Dictionary.load(dictionary_filename)
+        else:
+            dic = None
+
+        return cls(documents=data['tokens'], metadata=data['metadata'],
+                   dictionary=dic)
 
     def generate_dictionary(self):
         self.dic = gensim.corpora.Dictionary(self.documents)
@@ -159,6 +174,24 @@ class Corpus(object):
                 shape=(self.num_samples, self.num_features))
 
         return self._csr_matrix
+
+    def save(self, filename, dictionary_filename=None):
+        with open(filename, 'wb') as f:
+            pickle.dump({
+                'tokens': corpus.documents,
+                'metadata': corpus.metadata,
+            }, f)
+        if dictionary_filename is not None:
+            self.save_dictionary(dictionary_filename)
+
+    @property
+    def dic(self):
+        return self._dic
+
+    @dic.setter
+    def dic(self, new_dic):
+        self._dic = new_dic
+        self._reset_index()
 
     def save_dictionary(self, filename):
         self.dic.save(filename)
@@ -330,11 +363,7 @@ if __name__ == '__main__':
     corpus = load_enron_corpus_mp(sys.argv[1])
     print("Emails: {0}".format(len(corpus.documents)))
 
-    with open(sys.argv[2], 'wb') as f:
-        pickle.dump(
-            {'tokens': corpus.documents, 'metadata': corpus.metadata}, f)
-    print("saving dictionary")
-    corpus.save_dictionary(sys.argv[3])
+    corpus.save(sys.argv[2], dictionary_filename=sys.argv[3])
 
     # corpus.generate_bag_of_words()
     # corpus.generate_corpus_matrix()

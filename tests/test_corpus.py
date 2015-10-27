@@ -19,20 +19,14 @@ from nose.tools import assert_true, assert_equals
 import numpy as np
 from numpy.testing import assert_array_equal
 import gensim
-from corpora.corpus import Corpus
+from corpora.corpus import Corpus, filter_email
+from test_mock import mock_corpus
 
 
 def test_init_corpus():
     c = Corpus()
     assert_equals([], c.documents)
     assert_equals(gensim.corpora.Dictionary(), c.dic)
-
-
-def mock_corpus():
-    docs = [['a', 'la', 'a'], ['ca']]
-    metadata = [{'user': 'this', 'age': 10}, {'user': 'that'}]
-    c = Corpus(documents=docs, metadata=metadata)
-    return c, docs
 
 
 def test_init_nonempty():
@@ -116,3 +110,14 @@ def test_merge():
     assert_array_equal(docs + docs, c.documents)
     assert_equals(3, c.num_features)
     assert_equals((4, 3), c.sparse_matrix().shape)
+
+
+def test_filter_email():
+    email = """
+Hi john
+this <b>great</b>...<blink>opportunity!=20
+> forwarded and so filtered
+"""
+
+    filtered = filter_email(email)
+    assert_equals("\nHi john\nthis  great .  opportunity! \n", filtered)

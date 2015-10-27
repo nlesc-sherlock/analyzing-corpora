@@ -19,22 +19,30 @@ from wordcloud import WordCloud
 from sklearn.decomposition import LatentDirichletAllocation
 import numpy as np
 from matplotlib.pyplot import subplot, figure, imshow, plot, axis, title
+from sklearn.externals import joblib
 
 
 class ScikitLda(object):
 
-    def __init__(self, corpus, lda=None, n_topics=10, max_iter=5,
-                 learning_method='online', learning_offset=50., **kwargs):
+    def __init__(self, corpus=None, lda=None, n_topics=10,
+                 max_iter=5, learning_method='online', learning_offset=50.,
+                 **kwargs):
         if lda is None:
             self.lda = LatentDirichletAllocation(
                 n_topics=n_topics, max_iter=max_iter,
                 learning_method=learning_method,
                 learning_offset=learning_offset, **kwargs)
-            self.lda.fit(corpus.sparse_matrix())
         else:
             self.lda = lda
 
         self._corpus = corpus
+        self._weights = None
+
+    def fit(self):
+        self.lda.fit(self.corpus.sparse_matrix())
+
+    def partial_fit(self, corpus):
+        self.lda.partial_fit(corpus.sparse_matrix())
         self._weights = None
 
     @property
@@ -52,9 +60,12 @@ class ScikitLda(object):
     @property
     def weights(self):
         if self._weights is None:
-            self._weights = self.lda.transform(self.corpus.sparse_matrix())
-            self._weights = (self._weights.T / self._weights.sum(axis=1)).T
+            self._weights = self.partial_weights(self.corpus)
         return self._weights
+
+    def partial_weights(self, corpus):
+        weights = self.transform(corpus)
+        return (weights.T / weights.sum(axis=1)).T
 
     def transform(self, corpus):
         return self.lda.transform(corpus.sparse_matrix())
@@ -76,6 +87,14 @@ class ScikitLda(object):
             topicWeightedWords.append(topicWeights)
 
         return (topicWords, topicWeightedWords)
+
+    def save(self, filename):
+        joblib.dump(self.lda, filename)
+
+    @classmethod
+    def load(cls, filename, corpus=None):
+        lda = joblib.load(filename)
+        return cls(lda=lda, corpus=corpus)
 
 
 def topics_by_discrete_property(lda, all_property_values):
@@ -120,8 +139,3 @@ def plot_wordcloud_with_property(topicWeightedWords, topicsByProperty):
         plot(topicsByProperty[:, idx])
         axis([10, 100, 0, 1.0])
         title('Topic #%2d' % (idx))
-
-
-def getDocumentTopics(lda, corpus):
-    docWeights = lda.transform(corpus.sparse_matrix())[0]
-    return docWeights / docWeights.sum()
