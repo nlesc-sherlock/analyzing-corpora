@@ -15,17 +15,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pickle
-import joblib
 import os
-import gensim
 import argparse
 from corpora.corpus import Corpus
 from corpora.scikit import ScikitLda
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description="train and save the LDA parser with different number of topics")
+        description="train and save the LDA parser with different number of "
+                    "topics")
     parser.add_argument('output_folder')
     parser.add_argument(
         'parsed_document',
@@ -34,23 +32,13 @@ if __name__ == '__main__':
     parser.add_argument('-t', '--topics', default=10)
     args = parser.parse_args()
 
-    if args.dictionary is None:
-        dic = None
-    else:
-        print("loading dictionary")
-        dic = gensim.corpora.Dictionary.load(args.dictionary)
-
-    print("loading pickled data")
-    with open(args.parsed_document) as f:
-        data = pickle.load(f)
-
-    corpus = Corpus(documents=data['tokens'], metadata=data['metadata'],
-                    dictionary=dic)
+    print("loading corpus")
+    corpus = Corpus.load(args.parsed_document, args.dictionary)
 
     print("calculating LDA of {0} topics".format(args.topics))
-    lda = ScikitLda(corpus, n_topics=args.topics)
+    lda = ScikitLda(corpus=corpus, n_topics=int(args.topics))
+    lda.fit()
 
     print("writing to file")
-    output_file = os.path.join(args.output_folder,
-                               'lda_{0}.pkl'.format(args.topics))
-    joblib.dump(lda.lda, output_file)
+    lda.save(os.path.join(args.output_folder,
+                          'lda_{0}.pkl'.format(args.topics)))

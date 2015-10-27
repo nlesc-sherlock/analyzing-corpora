@@ -18,7 +18,6 @@
 from __future__ import print_function
 import argparse
 from corpora import corpus
-import pickle
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -39,9 +38,4 @@ if __name__ == '__main__':
                                         num_processes=int(args.processes))
 
     print("storing python pickle file")
-    with open(args.parsed_document, 'wb') as f:
-        pickle.dump({'tokens': c.documents, 'metadata': c.metadata}, f)
-
-    if args.dictionary is not None:
-        print("saving dictionary")
-        c.save_dictionary(args.dictionary)
+    c.save(args.parsed_document, args.dictionary)

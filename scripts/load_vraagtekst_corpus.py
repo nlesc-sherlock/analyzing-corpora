@@ -30,7 +30,16 @@ if __name__ == '__main__':
     print("nSamples (docs) : {0}".format(corpus.num_samples))
     print("nFeatures(words): {0}".format(corpus.num_features))
 
-    lda = ScikitLda(corpus, n_topics=10)
+    print("saving dictionary")
+    corpus.save_dictionary('data/preprocessedData.dic')
+
+    print("computing LDA")
+    lda = ScikitLda(corpus=corpus, n_topics=10)
+    lda.fit()
+
+    print("saving LDA")
+    lda.save('data/preprocessedData.lda_10.pkl')
+
     topicWords, topicWeightedWords = lda.topic_words()
 
     for topic_idx, wordsInTopic in enumerate(topicWords):
