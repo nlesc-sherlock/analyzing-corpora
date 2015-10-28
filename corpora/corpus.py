@@ -278,7 +278,7 @@ class Corpus(object):
 
         try:
             dic = gensim.corpora.Dictionary.load(dictionary_filename_or_fp)
-        except TypeError:
+        except AttributeError:
             dic = None
 
         return cls(documents=data['tokens'], metadata=data['metadata'],
