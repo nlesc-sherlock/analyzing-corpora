@@ -19,7 +19,7 @@ from __future__ import print_function
 import gensim
 import pickle
 import nltk
-import pattern.nl as nlp
+import pattern.en as nlp
 import sys
 import os
 import progressbar
