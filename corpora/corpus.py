@@ -24,6 +24,7 @@ import sys
 import os
 import progressbar
 import scipy
+import scipy.io
 import re
 import multiprocessing
 import pandas as pd
@@ -246,7 +247,8 @@ class Corpus(object):
         self.dic.filter_extremes(*args, **kwargs)
         self._reset_index()
 
-    def save(self, filename_or_fp, dictionary_filename_or_fp=None):
+    def save(self, filename_or_fp, dictionary_filename_or_fp=None,
+             sparse_matrix_filename_or_fp=None):
         corpus_dict = {
             'tokens': self.documents,
             'metadata': self.metadata,
@@ -260,20 +262,35 @@ class Corpus(object):
         if dictionary_filename_or_fp is not None:
             self.save_dictionary(dictionary_filename_or_fp)
 
+        if sparse_matrix_filename_or_fp is not None:
+            mat = self.sparse_matrix()
+            np.savez(sparse_matrix_filename_or_fp, data=mat.data,
+                     indices=mat.indices, indptr=mat.indptr,
+                     shape=mat.shape)
+
     def save_dictionary(self, filename_or_fp):
         self.dic.save(filename_or_fp)
 
     @classmethod
-    def load(cls, filename_or_fp=None, dictionary_filename_or_fp=None):
+    def load(cls, filename_or_fp=None, dictionary_filename_or_fp=None,
+             sparse_matrix_filename_or_fp=None):
         if filename_or_fp is None and dictionary_filename_or_fp is None:
             raise ValueError("Need corpus or dictionary filename")
 
+        sparse_matrix = None
         try:
             data = pickle.load(filename_or_fp)
         except AttributeError:
             with open(filename_or_fp, 'rb') as f:
                 data = pickle.load(f)
         except TypeError:
+            try:
+                loader = np.load(sparse_matrix_filename_or_fp)
+                sparse_matrix = csr_matrix(
+                    (loader['data'], loader['indices'], loader['indptr']),
+                    shape=loader['shape'])
+            except TypeError:
+                pass
             data = {'tokens': None, 'metadata': None}
 
         try:
