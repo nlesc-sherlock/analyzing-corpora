@@ -397,6 +397,9 @@ def load_enron_corpus_mp(directory, num_processes=2):
 
     bar.finish()
 
+    print("generating dictionary")
+    corpus.generate_dictionary()
+
     pool.close()
     pool.join()
 
