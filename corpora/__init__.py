@@ -14,3 +14,29 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+from .corpus import (
+    Corpus,
+    filter_email,
+    load_vraagtekst_corpus,
+    load_enron_corpus,
+    load_enron_corpus_mp,
+)
+from .scikit import (
+    ScikitLda,
+    topics_by_discrete_property,
+    topics_by_integer_property,
+    plot_wordcloud_with_property,
+)
+
+__all__ = [
+    'Corpus',
+    'filter_email',
+    'load_vraagtekst_corpus',
+    'load_enron_corpus',
+    'load_enron_corpus_mp',
+    'ScikitLda',
+    'topics_by_discrete_property',
+    'topics_by_integer_property',
+    'plot_wordcloud_with_property',
+]

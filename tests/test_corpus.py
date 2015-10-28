@@ -20,7 +20,7 @@ import numpy as np
 import pandas as pd
 from numpy.testing import assert_array_equal
 import gensim
-from corpora.corpus import Corpus, filter_email
+from corpora import Corpus, filter_email
 from test_mock import mock_corpus
 
 
