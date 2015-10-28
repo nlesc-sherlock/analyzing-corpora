@@ -17,6 +17,7 @@
 
 from nose.tools import assert_true, assert_equals
 import numpy as np
+import pandas as pd
 from numpy.testing import assert_array_equal
 import gensim
 from corpora.corpus import Corpus, filter_email
@@ -44,12 +45,6 @@ def test_init_nonempty():
     assert_equals(frozenset(words), frozenset(['a', 'la', 'ca']))
 
 
-def test_indexed_corpus():
-    c, docs = mock_corpus()
-    indexed = c.indexed_corpus()
-    assert_equals([[(0, 2), (1, 1)], [(2, 1)]], indexed)
-
-
 def test_sparse_matrix():
     c, docs = mock_corpus()
     matrix = c.sparse_matrix()
@@ -61,10 +56,11 @@ def test_sparse_matrix():
 
 def test_metadata():
     c, docs = mock_corpus()
+    assert_true(isinstance(c.metadata, pd.DataFrame))
     assert_equals(2, len(c.metadata))
-    assert_equals('this', c.metadata_frame['user'][0])
-    assert_equals(10, c.metadata_frame['age'][0])
-    assert_true(np.isnan(c.metadata_frame['age'][1]))
+    assert_equals('this', c.metadata['user'][0])
+    assert_equals(10, c.metadata['age'][0])
+    assert_true(np.isnan(c.metadata['age'][1]))
 
 
 def test_index():
@@ -104,12 +100,22 @@ def test_mask():
 def test_merge():
     c, docs = mock_corpus()
     otherc, otherdocs = mock_corpus()
+    old_metadata = c.metadata.fillna(-1.0)
 
     c.merge(otherc)
     assert_equals(4, c.num_samples)
     assert_array_equal(docs + docs, c.documents)
     assert_equals(3, c.num_features)
     assert_equals((4, 3), c.sparse_matrix().shape)
+    assert_equals(4, len(c.metadata))
+
+    new_metadata = c.metadata[:2].fillna(-1.0)
+    assert_array_equal(old_metadata, new_metadata)
+
+    other_metadata = c.metadata[2:4].fillna(-1.0)
+    # reset index to align with old metadata
+    other_metadata.index = [0, 1]
+    assert_array_equal(old_metadata, other_metadata)
 
 
 def test_filter_email():

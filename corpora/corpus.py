@@ -23,13 +23,16 @@ import pattern.nl as nlp
 import sys
 import os
 import progressbar
-from scipy.sparse import csr_matrix
+import scipy
 import re
 import multiprocessing
 import pandas as pd
+import numpy as np
 
 
 class Corpus(object):
+    """ Stores a corpus along with its dictionary. """
+
     standard_nlp_tags = frozenset([
         # None, u'(', u')', u',', u'.', u'<notranslation>damesbladen', # extras
         # u'CC', # conjunction
@@ -63,19 +66,16 @@ class Corpus(object):
         else:
             self.documents = documents
 
-        if metadata is None:
-            self.metadata = []
-        else:
-            self.metadata = metadata
-
-        self._metadata_frame = None
+        self._extra_metadata = []
+        self._metadata = pd.DataFrame(metadata)
+        # reindex to match documents
+        self._metadata.index = np.arange(len(self._metadata))
 
         if dictionary is None:
             self._dic = gensim.corpora.Dictionary(self.documents)
         else:
             self._dic = dictionary
 
-        self._corpus = None
         self._csr_matrix = None
 
         if nlp_tags is None:
@@ -87,18 +87,6 @@ class Corpus(object):
         else:
             self.exclude_words = frozenset(exclude_words)
 
-    def add_file(self, fp, metadata={}, update_dictionary=True):
-        self.add_text(fp.read(), metadata)
-
-    def add_text(self, text, metadata={}, update_dictionary=True):
-        tokens = self.tokenize(text)
-        self.documents.append(tokens)
-        self.metadata.append(metadata)
-        self._metadata_frame = None
-        if update_dictionary:
-            self.dic.add_documents([tokens])
-            self._reset_index()
-
     @property
     def num_samples(self):
         return len(self.documents)
@@ -107,7 +95,61 @@ class Corpus(object):
     def num_features(self):
         return len(self.dic)
 
+    @property
+    def dic(self):
+        return self._dic
+
+    @dic.setter
+    def dic(self, new_dic):
+        self._dic = new_dic
+        self._reset_index()
+
+    @property
+    def metadata(self):
+        if len(self._extra_metadata) > 0:
+            frames = [self._metadata, pd.DataFrame(self._extra_metadata)]
+            self._metadata = pd.concat(frames, ignore_index=True)
+            self._extra_metadata = []
+        return self._metadata
+
+    def word(self, i):
+        """ Returns the word with id in the dictionary. """
+        return self.dic[i]
+
+    def add_file(self, filename_or_fp, metadata={}, update_dictionary=True):
+        """ Add a document to the corpus """
+        try:
+            text = filename_or_fp.read()
+        except AttributeError:
+            with open(filename_or_fp, 'rb') as fp:
+                text = fp.read()
+
+        self.add_text(text, metadata)
+
+    def add_text(self, text, metadata={}, update_dictionary=True):
+        """ Add a text to the corpus as a single string """
+        tokens = self.tokenize(text)
+        self.documents.append(tokens)
+        self._extra_metadata.append(metadata)
+        if update_dictionary:
+            self.dic.add_documents([tokens])
+            self._reset_index()
+
     def tokenize(self, text, nlp_tags=None, exclude_words=None):
+        """
+        Tokenize words in a text and return the relevant ones
+
+        Parameters
+        ----------
+        text : str
+            Text to tokenize.
+        nlp_tags : list or set of str
+            Natural language processing codes of word semantics to keep as
+            relevant tokens when tokenizing. See Corpus.standard_nlp_tags for
+            an example
+        exclude_words : list or set of str
+            Exact words and symbols to filter out.
+        """
         if nlp_tags is None:
             nlp_tags = self.nlp_tags
         if exclude_words is None:
@@ -123,123 +165,127 @@ class Corpus(object):
 
         return words
 
-    @classmethod
-    def load(cls, filename=None, dictionary_filename=None):
-        if filename is None and dictionary_filename is None:
-            raise ValueError("Need corpus or dictionary filename")
-
-        if filename is not None:
-            with open(filename, 'rb') as f:
-                data = pickle.load(f)
-        else:
-            data = {'tokens': None, 'metadata': None}
-
-        if dictionary_filename is not None:
-            dic = gensim.corpora.Dictionary.load(dictionary_filename)
-        else:
-            dic = None
-
-        return cls(documents=data['tokens'], metadata=data['metadata'],
-                   dictionary=dic)
-
     def generate_dictionary(self):
+        """ Generate the dictionary from the current corpus """
         self.dic = gensim.corpora.Dictionary(self.documents)
-        self._reset_index()
 
-    def indexed_corpus(self):
-        if self._corpus is None:
-            self._corpus = [self.dic.doc2bow(tokens)
-                            for tokens in self.documents]
-        return self._corpus
-
+    # dictionary changed; index is no longer valid
     def _reset_index(self):
-        self._corpus = None
         self._csr_matrix = None
 
     def sparse_matrix(self):
+        """ A sparse matrix M, with m_ij as the number of times word i occurs
+        in document j. """
         if self._csr_matrix is None:
-            index = self.indexed_corpus()
+            doc_ids = np.array([], dtype=np.int8)
+            word_count_tuples = np.ndarray(shape=(0, 2), dtype=np.int8)
+            for n, tokens in enumerate(self.documents):
+                bow = self.dic.doc2bow(tokens)
+                # append to the big bag of words, we will transpose later
+                # to separate the words and counts.
+                word_count_tuples = np.append(word_count_tuples, bow, axis=0)
+                # index the word_count_tuples with the doc id == row number
+                doc_ids = np.append(doc_ids, np.repeat(n, len(bow)))
 
-            data = []
-            row = []
-            col = []
-            for n, doc in enumerate(index):
-                for w, c in doc:
-                    col.append(n)
-                    row.append(w)
-                    data.append(c)
+            word_ids = word_count_tuples.T[0]
+            word_counts = word_count_tuples.T[1]
 
-            self._csr_matrix = csr_matrix(
-                (data, (col, row)),
+            self._csr_matrix = scipy.sparse.csr_matrix(
+                (word_counts, (doc_ids, word_ids)),
                 shape=(self.num_samples, self.num_features))
 
         return self._csr_matrix
 
-    def save(self, filename, dictionary_filename=None):
-        with open(filename, 'wb') as f:
-            pickle.dump({
-                'tokens': corpus.documents,
-                'metadata': corpus.metadata,
-            }, f)
-        if dictionary_filename is not None:
-            self.save_dictionary(dictionary_filename)
-
-    @property
-    def dic(self):
-        return self._dic
-
-    @dic.setter
-    def dic(self, new_dic):
-        self._dic = new_dic
-        self._reset_index()
-
-    def save_dictionary(self, filename):
-        self.dic.save(filename)
-
     def merge(self, other):
+        """ Merge current corpus with another. This modifies the current
+        corpus. Documents from the other corpus will come after the documents
+        of the current one."""
         self.documents = self.documents + other.documents
-        self.metadata = self.metadata + other.metadata
-        self._metadata_frame = None
+        frames = [self.metadata, other.metadata]
+        self._metadata = pd.concat(frames, ignore_index=True)
         self.dic.merge_with(other.dic)
         self._reset_index()
 
-    @property
-    def metadata_frame(self):
-        if self._metadata_frame is None:
-            self._metadata_frame = pd.DataFrame.from_dict(self.metadata)
-        return self._metadata_frame
-
     def with_index(self, idx):
+        """ Creates a new corpus with only the document at index idx, but with
+        the same dictionary. """
         return Corpus(documents=[self.documents[idx]],
-                      metadata=[self.metadata[idx]],
+                      metadata=self.metadata[idx:idx+1],
                       dictionary=self.dic,
                       nlp_tags=self.nlp_tags,
                       exclude_words=self.exclude_words)
 
     def with_mask(self, mask):
+        """ Creates a new corpus with all documents in the mask array. The
+        mask array may be an integer index or bool mask."""
         new_docs = [d for i, d in enumerate(self.documents) if mask[i]]
         return Corpus(documents=new_docs,
-                      metadata=self.metadata_frame[mask].to_dict('records'),
+                      metadata=self.metadata[mask],
                       dictionary=self.dic,
                       nlp_tags=self.nlp_tags,
                       exclude_words=self.exclude_words)
 
     def with_property(self, name, value):
-        return self.with_mask(self.metadata_frame[name] == value)
+        """ Creates a new corpus with all documents for which the metadata
+        property name equals value."""
+        return self.with_mask(self.metadata[name] == value)
 
-    def word(self, i):
-        return self.dic[i]
-
-    def filter_extremes(self, *args, **kwargs):
-        self.dic.filter_extremes(*args, **kwargs)
-        self._reset_index()
-
-    def with_tokens(self, tokens):
+    def with_tokens(self, tokens, metadata=None):
+        """ Create a new corpus with the same dictionary but with a single
+        list of tokens. """
         return Corpus(documents=[tokens],
-                      metadata=None,
+                      metadata=metadata,
                       dictionary=self.dic,
                       nlp_tags=self.nlp_tags,
                       exclude_words=self.exclude_words)
+
+    def filter_extremes(self, *args, **kwargs):
+        """ Filters extreme occurrance values from the dictionary. See
+        gensim.dictionary.Dictionary.filter_extremes for the arguments. Resets
+        the indexes and invalidates the sparse matrix."""
+        self.dic.filter_extremes(*args, **kwargs)
+        self._reset_index()
+
+    def save(self, filename_or_fp, dictionary_filename_or_fp=None):
+        corpus_dict = {
+            'tokens': self.documents,
+            'metadata': self.metadata,
+        }
+        try:
+            pickle.dump(corpus_dict, filename_or_fp)
+        except AttributeError:
+            with open(filename_or_fp, 'wb') as f:
+                pickle.dump(corpus_dict, f)
+
+        if dictionary_filename_or_fp is not None:
+            self.save_dictionary(dictionary_filename_or_fp)
+
+    def save_dictionary(self, filename_or_fp):
+        self.dic.save(filename_or_fp)
+
+    @classmethod
+    def load(cls, filename_or_fp=None, dictionary_filename_or_fp=None):
+        if filename_or_fp is None and dictionary_filename_or_fp is None:
+            raise ValueError("Need corpus or dictionary filename")
+
+        try:
+            data = pickle.load(filename_or_fp)
+        except AttributeError:
+            with open(filename_or_fp, 'rb') as f:
+                data = pickle.load(f)
+        except TypeError:
+            data = {'tokens': None, 'metadata': None}
+
+        try:
+            dic = gensim.corpora.Dictionary.load(dictionary_filename_or_fp)
+        except TypeError:
+            dic = None
+
+        return cls(documents=data['tokens'], metadata=data['metadata'],
+                   dictionary=dic)
+
+    def load_dictionary(self, filename_or_fp):
+        self.dic = gensim.corpora.Dictionary.load(filename_or_fp)
 
 
 def load_files(user, path, files, result_queue=None):
@@ -263,6 +309,8 @@ dot_pattern = re.compile('\.\.+')
 
 
 def filter_email(text):
+    """ Filters reply/forward text, html, mime encodings and dots from emails.
+    """
     text = forward_pattern.sub('\n', text)
     text = html_patten.sub(' ', text)
     text = mime_pattern.sub(' ', text)
@@ -274,9 +322,8 @@ def load_vraagtekst_corpus(documents_filename):
         data_vraag = pickle.load(f)
 
     metadata_columns = data_vraag.columns.difference(['SentToks'])
-    metadata = data_vraag.ix[:, metadata_columns].to_dict('records')
     return Corpus(documents=data_vraag['SentToks'].tolist(),
-                  metadata=metadata)
+                  metadata=data_vraag[metadata_columns])
 
 
 def count_files(directory):
