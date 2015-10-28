@@ -19,7 +19,7 @@ from __future__ import print_function
 import gensim
 import pickle
 import nltk
-import pattern.nl as nlp
+import pattern.en as nlp
 import sys
 import os
 import progressbar
@@ -295,7 +295,7 @@ class Corpus(object):
 
         try:
             dic = gensim.corpora.Dictionary.load(dictionary_filename_or_fp)
-        except TypeError:
+        except AttributeError:
             dic = None
 
         return cls(documents=data['tokens'], metadata=data['metadata'],
@@ -413,6 +413,9 @@ def load_enron_corpus_mp(directory, num_processes=2):
         bar.update(len(corpus.documents))
 
     bar.finish()
+
+    print("generating dictionary")
+    corpus.generate_dictionary()
 
     pool.close()
     pool.join()

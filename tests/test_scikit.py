@@ -19,7 +19,7 @@ from nose.tools import assert_equals, assert_false
 import numpy as np
 from numpy.testing import assert_array_less
 from test_mock import mock_corpus
-from corpora.scikit import ScikitLda
+from corpora import ScikitLda
 
 
 def test_scikit_init():

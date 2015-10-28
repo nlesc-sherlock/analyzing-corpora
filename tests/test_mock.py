@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from corpora.corpus import Corpus
+from corpora import Corpus
 
 
 def mock_corpus():
