@@ -38,4 +38,4 @@ if __name__ == '__main__':
 
     print("writing matrix to file")
     corpus.save(sparse_matrix_file=args.matrix,
-                metadata_filename=args.metadata_file)
+                metadata_filename=args.metadata)
