@@ -140,7 +140,8 @@ def load_sparse_corpus(sparse_matrix_file=None, documents_file=None,
             dictionary_file=dictionary_file,
             metadata_filename=metadata_filename)
     else:
-        return Corpus.load(
-            documents_file=documents_file,
-            dictionary_file=dictionary_file,
-            metadata_filename=metadata_filename)
+        return SparseCorpus.from_corpus(
+            Corpus.load(
+                documents_file=documents_file,
+                dictionary_file=dictionary_file,
+                metadata_filename=metadata_filename))

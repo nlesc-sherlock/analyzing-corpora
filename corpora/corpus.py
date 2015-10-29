@@ -106,7 +106,8 @@ class Corpus(object):
                 if len(bow) > 0:
                     # append to the big bag of words, we will transpose later
                     # to separate the words and counts.
-                    word_count_tuples = np.append(word_count_tuples, bow, axis=0)
+                    word_count_tuples = np.append(word_count_tuples, bow,
+                                                  axis=0)
                     # index the word_count_tuples with the doc id == row number
                     doc_ids = np.append(doc_ids, np.repeat(n, len(bow)))
 
