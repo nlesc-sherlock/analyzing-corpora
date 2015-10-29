@@ -20,59 +20,27 @@ import gensim
 import pandas as pd
 import numpy as np
 import itertools
-from .corpus import Corpus
+from .corpus import Corpus, AbstractCorpus
 from scipy.sparse import csr_matrix
 
 
-class SparseCorpus(object):
-    """ Stores a corpus along with its dictionary. """
+class SparseCorpus(AbstractCorpus):
+    """ Stores a sparse matrix along with its static dictionary. """
     def __init__(self, sparse_matrix, dictionary, metadata=None):
-        self._dic = dictionary
-        self._csr_matrix = sparse_matrix
-        self.metadata = pd.DataFrame(metadata)
-        self.metadata.index = np.arange(len(self.metadata))
+        super(SparseCorpus, self).__init__(metadata=metadata,
+                                           dictionary=dictionary,
+                                           sparse_matrix=sparse_matrix)
 
     @property
     def num_samples(self):
         return self._csr_matrix.shape[0]
 
-    @property
-    def num_features(self):
-        return len(self.dic)
-
-    @property
-    def dic(self):
-        return self._dic
-
-    def word(self, i):
-        """ Returns the word with id in the dictionary. """
-        return self.dic[i]
-
-    def sparse_matrix(self):
-        """ A sparse matrix M, with m_ij as the number of times word i occurs
-        in document j. """
-        return self._csr_matrix
-
-    def with_mask(self, mask):
+    def with_indexed_mask(self, index):
         """ Creates a new corpus with all documents in the mask array. The
         mask array may be an integer index or bool mask."""
-        index = np.asarray(mask)
-        if index.dtype == bool:
-            index = np.where(index)[0]
-
-        return SparseCorpus(documents=self._csr_matrix[index],
+        return SparseCorpus(sparse_matrix=self._csr_matrix[index],
                             metadata=self.metadata[index],
                             dictionary=self.dic)
-
-    def with_property(self, name, value):
-        """ Creates a new corpus with all documents for which the metadata
-        property name equals value."""
-        return self.with_mask(self.metadata[name] == value)
-
-    def with_index(self, idx):
-        """ Creates a new corpus with only the document at index idx, but with
-        the same dictionary. """
-        return self.with_mask([idx])
 
     def with_tokens(self, tokens, metadata=None):
         """ Create a new corpus with the same dictionary but with a single
@@ -100,20 +68,20 @@ class SparseCorpus(object):
         return Corpus(documents=docs, dictionary=self.dic,
                       metadata=self.metadata, **kwargs)
 
+    def _reset_index(self):
+        raise NotImplementedError("Sparse Corpus index cannot be reset")
+
+    @classmethod
+    def from_corpus(cls, corpus):
+        return cls(sparse_matrix=corpus.sparse_matrix(), dictionary=corpus.dic)
+
     def save(self, sparse_matrix_file, dictionary_file=None,
              metadata_filename=None):
         mat = self.sparse_matrix()
         np.savez(sparse_matrix_file, data=mat.data, indices=mat.indices,
                  indptr=mat.indptr, shape=mat.shape)
-        if dictionary_file is not None:
-            self.dic.save(dictionary_file)
-        if metadata_filename is not None:
-            self.metadata.to_hdf(metadata_filename, 'metadata',
-                                 complevel=7, complib='zlib')
-
-    @classmethod
-    def from_corpus(cls, corpus):
-        return cls(sparse_matrix=corpus.sparse_matrix(), dictionary=corpus.dic)
+        super(SparseCorpus, self).save(dictionary_file=dictionary_file,
+                                       metadata_filename=metadata_filename)
 
     @classmethod
     def load(cls, sparse_matrix_file, dictionary_file, metadata_filename=None):
