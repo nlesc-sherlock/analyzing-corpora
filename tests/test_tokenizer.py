@@ -15,32 +15,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .corpus import (
-    Corpus,
-    load_vraagtekst_corpus,
-    load_enron_corpus,
-    load_enron_corpus_mp,
-)
-from .scikit import (
-    ScikitLda,
-    topics_by_discrete_property,
-    topics_by_integer_property,
-    plot_wordcloud_with_property,
-)
-from .tokenizer import (
-    Tokenizer,
-    filter_email,
-)
+from nose.tools import assert_equals
+from corpora import filter_email
 
-__all__ = [
-    'Corpus',
-    'load_vraagtekst_corpus',
-    'load_enron_corpus',
-    'load_enron_corpus_mp',
-    'ScikitLda',
-    'topics_by_discrete_property',
-    'topics_by_integer_property',
-    'plot_wordcloud_with_property',
-    'Tokenizer',
-    'filter_email',
-]
+
+def test_filter_email():
+    email = """
+Hi john
+this <b>great</b>...<blink>opportunity!=20
+> forwarded and so filtered
+"""
+
+    filtered = filter_email(email)
+    assert_equals("\nHi john\nthis  great .  opportunity! \n", filtered)

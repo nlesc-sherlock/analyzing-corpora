@@ -20,7 +20,7 @@ import numpy as np
 import pandas as pd
 from numpy.testing import assert_array_equal
 import gensim
-from corpora import Corpus, filter_email
+from corpora import Corpus
 from test_mock import mock_corpus
 
 
@@ -118,12 +118,12 @@ def test_merge():
     assert_array_equal(old_metadata, other_metadata)
 
 
-def test_filter_email():
-    email = """
-Hi john
-this <b>great</b>...<blink>opportunity!=20
-> forwarded and so filtered
-"""
+def test_add():
+    c, docs = mock_corpus()
+    old_samples = c.num_samples
+    old_features = c.num_features
+    c.add_document(['new', 'words'])
+    assert_equals(old_samples + 1, c.num_samples)
+    assert_equals(old_features + 2, c.num_features)
 
-    filtered = filter_email(email)
-    assert_equals("\nHi john\nthis  great .  opportunity! \n", filtered)
+

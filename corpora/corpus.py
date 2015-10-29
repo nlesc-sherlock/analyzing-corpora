@@ -18,50 +18,21 @@
 from __future__ import print_function
 import gensim
 import pickle
-import nltk
-import pattern.en as nlp
 import sys
 import os
 import progressbar
 import scipy
 import scipy.io
-import re
 import multiprocessing
 import pandas as pd
 import numpy as np
+from .tokenizer import Tokenizer, filter_email
 
 
 class Corpus(object):
     """ Stores a corpus along with its dictionary. """
 
-    standard_nlp_tags = frozenset([
-        # None, u'(', u')', u',', u'.', u'<notranslation>damesbladen', # extras
-        # u'CC', # conjunction
-        # u'CD', # cardinal (numbers)
-        # u'DT', # determiner (de, het)
-        u'FW',  # foreign word
-        # u'IN', #conjunction
-        u'JJ',  # adjectives -- # u'JJR', u'JJS',
-        # u'MD', # Modal verb
-        u'NN', u'NNP', u'NNPS', u'NNS',  # Nouns
-        # u'PRP', # Pronouns -- # u'PRP$',
-        u'RB',  # adverb
-        u'RP',  # adverb
-        # u'SYM', # Symbol
-        # u'TO', # infinitival to
-        # u'UH', # interjection
-        u'VB', u'VBD', u'VBG', u'VBN', u'VBP', u'VBZ',  # Verb forms
-    ])
-    standard_stopwords = frozenset(
-        nltk.corpus.stopwords.words('english') +
-        ['', '.', ',', '?', '(', ')', ',', ':', "'",
-         u'``', u"''", ';', '-', '!', '%', '&', '...', '=', '>', '<',
-         '#', '_', '~', '+', '*', '/', '\\', '[', ']', '|'
-         u'\u2019', u'\u2018', u'\u2013', u'\u2022',
-         u'\u2014', u'\uf02d', u'\u20ac', u'\u2026'])
-
-    def __init__(self, documents=None, metadata=None, dictionary=None,
-                 nlp_tags=None, exclude_words=None):
+    def __init__(self, documents=None, metadata=None, dictionary=None):
         if documents is None:
             self.documents = []
         else:
@@ -78,15 +49,6 @@ class Corpus(object):
             self._dic = dictionary
 
         self._csr_matrix = None
-
-        if nlp_tags is None:
-            self.nlp_tags = Corpus.standard_nlp_tags
-        else:
-            self.nlp_tags = frozenset(nlp_tags)
-        if exclude_words is None:
-            self.exclude_words = Corpus.standard_stopwords
-        else:
-            self.exclude_words = frozenset(exclude_words)
 
     @property
     def num_samples(self):
@@ -117,54 +79,13 @@ class Corpus(object):
         """ Returns the word with id in the dictionary. """
         return self.dic[i]
 
-    def add_file(self, filename_or_fp, metadata={}, update_dictionary=True):
-        """ Add a document to the corpus """
-        try:
-            text = filename_or_fp.read()
-        except AttributeError:
-            with open(filename_or_fp, 'rb') as fp:
-                text = fp.read()
-
-        self.add_text(text, metadata)
-
-    def add_text(self, text, metadata={}, update_dictionary=True):
-        """ Add a text to the corpus as a single string """
-        tokens = self.tokenize(text)
+    def add_document(self, tokens, metadata={}, update_dictionary=True):
+        """ Add a document to the corpus as a list of tokens """
         self.documents.append(tokens)
         self._extra_metadata.append(metadata)
         if update_dictionary:
             self.dic.add_documents([tokens])
             self._reset_index()
-
-    def tokenize(self, text, nlp_tags=None, exclude_words=None):
-        """
-        Tokenize words in a text and return the relevant ones
-
-        Parameters
-        ----------
-        text : str
-            Text to tokenize.
-        nlp_tags : list or set of str
-            Natural language processing codes of word semantics to keep as
-            relevant tokens when tokenizing. See Corpus.standard_nlp_tags for
-            an example
-        exclude_words : list or set of str
-            Exact words and symbols to filter out.
-        """
-        if nlp_tags is None:
-            nlp_tags = self.nlp_tags
-        if exclude_words is None:
-            exclude_words = self.exclude_words
-
-        words = []
-        for s in nlp.split(nlp.parse(text)):
-            for word, tag in s.tagged:
-                if tag in nlp_tags:
-                    word = word.lower()
-                    if word not in exclude_words:
-                        words.append(word)
-
-        return words
 
     def generate_dictionary(self):
         """ Generate the dictionary from the current corpus """
@@ -212,9 +133,7 @@ class Corpus(object):
         the same dictionary. """
         return Corpus(documents=[self.documents[idx]],
                       metadata=self.metadata[idx:idx+1],
-                      dictionary=self.dic,
-                      nlp_tags=self.nlp_tags,
-                      exclude_words=self.exclude_words)
+                      dictionary=self.dic)
 
     def with_mask(self, mask):
         """ Creates a new corpus with all documents in the mask array. The
@@ -222,9 +141,7 @@ class Corpus(object):
         new_docs = [d for i, d in enumerate(self.documents) if mask[i]]
         return Corpus(documents=new_docs,
                       metadata=self.metadata[mask],
-                      dictionary=self.dic,
-                      nlp_tags=self.nlp_tags,
-                      exclude_words=self.exclude_words)
+                      dictionary=self.dic)
 
     def with_property(self, name, value):
         """ Creates a new corpus with all documents for which the metadata
@@ -236,9 +153,7 @@ class Corpus(object):
         list of tokens. """
         return Corpus(documents=[tokens],
                       metadata=metadata,
-                      dictionary=self.dic,
-                      nlp_tags=self.nlp_tags,
-                      exclude_words=self.exclude_words)
+                      dictionary=self.dic)
 
     def filter_extremes(self, *args, **kwargs):
         """ Filters extreme occurrance values from the dictionary. See
@@ -307,31 +222,16 @@ class Corpus(object):
 
 def load_files(user, path, files, result_queue=None):
     corpus = Corpus()
+    tokenizer = Tokenizer(filters=[filter_email])
     mailbox = os.path.basename(path)
     for email in files:
         metadata = {'user': user, 'mailbox': mailbox, 'directory': path}
-        with open(os.path.join(path, email)) as f:
-            text = filter_email(f.read())
-            corpus.add_text(text, metadata, update_dictionary=False)
+        tokens = tokenizer.tokenize_file(os.path.join(path, email))
+        corpus.add_document(tokens, metadata, update_dictionary=False)
     if result_queue is None:
         return corpus
     else:
         result_queue.put(corpus)
-
-
-forward_pattern = re.compile('[\r\n]>[^\r\n]*[\r\n]')
-html_patten = re.compile('<[^<]+?>')
-mime_pattern = re.compile('=\d\d')
-dot_pattern = re.compile('\.\.+')
-
-
-def filter_email(text):
-    """ Filters reply/forward text, html, mime encodings and dots from emails.
-    """
-    text = forward_pattern.sub('\n', text)
-    text = html_patten.sub(' ', text)
-    text = mime_pattern.sub(' ', text)
-    return dot_pattern.sub('. ', text)
 
 
 def load_vraagtekst_corpus(documents_filename):
