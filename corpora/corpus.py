@@ -21,6 +21,7 @@ import pickle
 import sys
 import os
 import progressbar
+import itertools
 import scipy
 import scipy.io
 import multiprocessing
@@ -99,23 +100,20 @@ class Corpus(object):
         """ A sparse matrix M, with m_ij as the number of times word i occurs
         in document j. """
         if self._csr_matrix is None:
-            doc_ids = np.array([], dtype=np.int8)
-            word_count_tuples = np.ndarray(shape=(0, 2), dtype=np.int8)
-            for n, tokens in enumerate(self.documents):
+            doc_ids = []
+            word_ids = []
+            counts = []
+            for doc_id, tokens in enumerate(self.documents):
                 bow = self.dic.doc2bow(tokens)
                 if len(bow) > 0:
-                    # append to the big bag of words, we will transpose later
-                    # to separate the words and counts.
-                    word_count_tuples = np.append(word_count_tuples, bow,
-                                                  axis=0)
-                    # index the word_count_tuples with the doc id == row number
-                    doc_ids = np.append(doc_ids, np.repeat(n, len(bow)))
+                    new_word_ids, new_counts = zip(*bow)
 
-            word_ids = word_count_tuples.T[0]
-            word_counts = word_count_tuples.T[1]
+                    doc_ids += list(itertools.repeat(doc_id, len(bow)))
+                    word_ids += new_word_ids
+                    counts += new_counts
 
             self._csr_matrix = scipy.sparse.csr_matrix(
-                (word_counts, (doc_ids, word_ids)),
+                (counts, (doc_ids, word_ids)),
                 shape=(self.num_samples, self.num_features))
 
         return self._csr_matrix
