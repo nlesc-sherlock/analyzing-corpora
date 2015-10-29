@@ -21,7 +21,7 @@ before_install:
   # Useful for debugging any issues with conda
   - conda info -a
 install:
-  - conda create -q -n test-environment --yes python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib nose pandas
+  - conda create -q -n test-environment --yes python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib nose pandas pytables
   - source activate test-environment
   - make install
 before_script:

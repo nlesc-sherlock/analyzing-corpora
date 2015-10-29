@@ -22,6 +22,8 @@ from numpy.testing import assert_array_equal
 import gensim
 from corpora import Corpus
 from test_mock import mock_corpus
+import os
+import tempfile
 
 
 def test_init_corpus():
@@ -127,3 +129,52 @@ def test_add():
     assert_equals(old_features + 2, c.num_features)
 
 
+def test_save_load():
+    c, docs = mock_corpus()
+    fd, filename = tempfile.mkstemp()
+    dict_fd, dict_filename = tempfile.mkstemp()
+    metadata_fd, metadata_filename = tempfile.mkstemp()
+    try:
+        f = None
+        dict_f = None
+        try:
+            f = os.fdopen(fd, 'wb')
+            dict_f = os.fdopen(dict_fd, 'wb')
+            c.save(documents_file=f, dictionary_file=dict_f,
+                   metadata_filename=metadata_filename)
+        finally:
+            if f is not None:
+                f.close()
+            if dict_f is not None:
+                dict_f.close()
+
+        new_c = Corpus.load(
+            documents_file=filename,
+            dictionary_file=dict_filename,
+            metadata_filename=metadata_filename)
+        assert_equals(c.documents, new_c.documents)
+        assert_true(all(c.metadata == new_c.metadata))
+        assert_equals(c.dic, new_c.dic)
+    finally:
+        os.remove(filename)
+        os.remove(dict_filename)
+
+
+def test_save_load_dictionary():
+    c, docs = mock_corpus()
+    dict_fd, dict_filename = tempfile.mkstemp()
+    try:
+        dict_f = None
+        try:
+            dict_f = os.fdopen(dict_fd, 'wb')
+            c.save_dictionary(dict_f)
+        finally:
+            if dict_f is not None:
+                dict_f.close()
+
+        new_c = Corpus()
+        new_c.load_dictionary(dict_filename)
+        assert_equals(c.dic, new_c.dic)
+
+    finally:
+        os.remove(dict_filename)

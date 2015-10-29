@@ -17,8 +17,8 @@
 
 import os
 import argparse
-from corpora.corpus import Corpus
-from corpora.scikit import ScikitLda
+from corpora import load_sparse_corpus, ScikitLda
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -26,14 +26,22 @@ if __name__ == '__main__':
                     "topics")
     parser.add_argument('output_folder')
     parser.add_argument(
-        'parsed_document',
-        help="python pickle file, containing tokens and metadata")
+        '-c', '--corpus', default=None,
+        help="python pickle file containing tokens")
+    parser.add_argument(
+        '-s', '--sparse-matrix', default=None,
+        help="sparse matrix file")
     parser.add_argument('-d', '--dictionary', default=None)
+    parser.add_argument('-m', '--metadata', default=None)
     parser.add_argument('-t', '--topics', default=10)
     args = parser.parse_args()
 
     print("loading corpus")
-    corpus = Corpus.load(args.parsed_document, args.dictionary)
+    corpus = load_sparse_corpus(
+        sparse_matrix_file=args.sparse_matrix,
+        documents_file=args.corpus,
+        dictionary_file=args.dictionary,
+        metadata_file=args.metadata)
 
     print("calculating LDA of {0} topics".format(args.topics))
     lda = ScikitLda(corpus=corpus, n_topics=int(args.topics))

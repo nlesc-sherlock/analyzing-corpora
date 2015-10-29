@@ -34,7 +34,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     print("loading corpus")
-    corpus = Corpus.load(args.parsed_document, args.dictionary)
+    corpus = Corpus.load(documents_file=args.parsed_document,
+                         dictionary_file=args.dictionary)
     corpus.filter_extremes(no_above=float(args.no_above),
                            no_below=int(args.no_below),
                            keep_n=int(args.keep))

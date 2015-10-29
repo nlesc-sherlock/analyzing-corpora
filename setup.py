@@ -46,6 +46,6 @@ setup(name='corpora',
         'Topic :: Text Processing :: Linguistic',
         'Intended Audience :: Science/Research',
       ],
-      install_requires=['gensim', 'scikit-learn', 'nltk', 'wordcloud', 'matplotlib', 'pandas', 'pattern', 'numpy', 'progressbar', 'joblib'],
+      install_requires=['gensim', 'scikit-learn', 'nltk', 'wordcloud', 'matplotlib', 'pandas', 'pattern', 'numpy', 'progressbar', 'joblib', 'tables'],
       tests_require=['nose', 'pyflakes', 'pep8', 'coverage']
      )

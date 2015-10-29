@@ -162,58 +162,53 @@ class Corpus(object):
         self.dic.filter_extremes(*args, **kwargs)
         self._reset_index()
 
-    def save(self, filename_or_fp, dictionary_filename_or_fp=None,
-             sparse_matrix_filename_or_fp=None):
-        corpus_dict = {
-            'tokens': self.documents,
-            'metadata': self.metadata,
-        }
+    def save(self, documents_file, dictionary_file=None,
+             metadata_filename=None):
         try:
-            pickle.dump(corpus_dict, filename_or_fp)
+            pickle.dump(self.documents, documents_file)
         except AttributeError:
-            with open(filename_or_fp, 'wb') as f:
-                pickle.dump(corpus_dict, f)
+            with open(documents_file, 'wb') as f:
+                pickle.dump(self.documents, f)
 
-        if dictionary_filename_or_fp is not None:
-            self.save_dictionary(dictionary_filename_or_fp)
+        if dictionary_file is not None:
+            self.save_dictionary(dictionary_file)
 
-        if sparse_matrix_filename_or_fp is not None:
-            mat = self.sparse_matrix()
-            np.savez(sparse_matrix_filename_or_fp, data=mat.data,
-                     indices=mat.indices, indptr=mat.indptr,
-                     shape=mat.shape)
+        if metadata_filename is not None:
+            self.metadata.to_hdf(metadata_filename, 'metadata',
+                                 complevel=7, complib='zlib')
 
     def save_dictionary(self, filename_or_fp):
         self.dic.save(filename_or_fp)
 
     @classmethod
-    def load(cls, filename_or_fp=None, dictionary_filename_or_fp=None,
-             sparse_matrix_filename_or_fp=None):
-        if filename_or_fp is None and dictionary_filename_or_fp is None:
+    def load(cls, documents_file=None, dictionary_file=None,
+             metadata_filename=None):
+        if documents_file is None and dictionary_file is None:
             raise ValueError("Need corpus or dictionary filename")
 
-        sparse_matrix = None
         try:
-            data = pickle.load(filename_or_fp)
+            docs = pickle.load(documents_file)
         except AttributeError:
-            with open(filename_or_fp, 'rb') as f:
-                data = pickle.load(f)
+            with open(documents_file, 'rb') as f:
+                docs = pickle.load(f)
         except TypeError:
-            try:
-                loader = np.load(sparse_matrix_filename_or_fp)
-                sparse_matrix = csr_matrix(
-                    (loader['data'], loader['indices'], loader['indptr']),
-                    shape=loader['shape'])
-            except TypeError:
-                pass
-            data = {'tokens': None, 'metadata': None}
+            docs = []
+
+        if isinstance(docs, dict):
+            metadata = docs['metadata']
+            docs = docs['tokens']
+        else:
+            metadata = None
 
         try:
-            dic = gensim.corpora.Dictionary.load(dictionary_filename_or_fp)
+            dic = gensim.corpora.Dictionary.load(dictionary_file)
         except AttributeError:
             dic = None
 
-        return cls(documents=data['tokens'], metadata=data['metadata'],
+        if metadata is None and metadata_filename is not None:
+            metadata = pd.read_hdf(metadata_filename, 'metadata')
+
+        return cls(documents=docs, metadata=metadata,
                    dictionary=dic)
 
     def load_dictionary(self, filename_or_fp):

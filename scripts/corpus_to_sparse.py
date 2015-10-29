@@ -15,29 +15,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import print_function
 import argparse
-from corpora import corpus
+from corpora import load_sparse_corpus
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description="parse and clean an email folder with headers already"
-                    " removed")
-    parser.add_argument('email_folder')
+        description="load files of corpus and store sparse corpus")
     parser.add_argument(
         'corpus',
-        help="python pickle file, containing tokens")
+        help="python pickle file, containing tokens and metadata")
+    parser.add_argument('matrix')
     parser.add_argument('-d', '--dictionary', default=None)
     parser.add_argument('-m', '--metadata', default=None)
-    parser.add_argument('-p', '--processes', default=2)
     args = parser.parse_args()
 
-    if args.processes == 1:
-        c = corpus.load_enron_corpus(args.email_folder)
-    else:
-        c = corpus.load_enron_corpus_mp(args.email_folder,
-                                        num_processes=int(args.processes))
+    print("loading corpus")
+    corpus = load_sparse_corpus(
+        documents_file=args.corpus,
+        dictionary_file=args.dictionary,
+        metadata_file=args.metadata)
 
-    print("storing python pickle file")
-    c.save(documents_file=args.corpus, dictionary_file=args.dictionary,
-           metadata_filename=args.metadata)
+    print("writing matrix to file")
+    corpus.save(sparse_matrix_file=args.matrix,
+                metadata_filename=args.metadata_file)

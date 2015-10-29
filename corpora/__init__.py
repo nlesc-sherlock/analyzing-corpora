@@ -27,6 +27,10 @@ from .scikit import (
     topics_by_integer_property,
     plot_wordcloud_with_property,
 )
+from .sparse_corpus import (
+    SparseCorpus,
+    load_sparse_corpus,
+)
 from .tokenizer import (
     Tokenizer,
     filter_email,
@@ -41,6 +45,8 @@ __all__ = [
     'topics_by_discrete_property',
     'topics_by_integer_property',
     'plot_wordcloud_with_property',
+    'SparseCorpus',
+    'load_sparse_corpus',
     'Tokenizer',
     'filter_email',
 ]
