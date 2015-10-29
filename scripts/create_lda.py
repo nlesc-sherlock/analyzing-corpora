@@ -41,7 +41,7 @@ if __name__ == '__main__':
         sparse_matrix_file=args.sparse_matrix,
         documents_file=args.corpus,
         dictionary_file=args.dictionary,
-        metadata_file=args.metadata)
+        metadata_filename=args.metadata)
 
     print("calculating LDA of {0} topics".format(args.topics))
     lda = ScikitLda(corpus=corpus, n_topics=int(args.topics))
