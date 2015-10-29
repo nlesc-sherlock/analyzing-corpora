@@ -34,7 +34,7 @@ if __name__ == '__main__':
     corpus = load_sparse_corpus(
         documents_file=args.corpus,
         dictionary_file=args.dictionary,
-        metadata_file=args.metadata)
+        metadata_filename=args.metadata)
 
     print("writing matrix to file")
     corpus.save(sparse_matrix_file=args.matrix,
