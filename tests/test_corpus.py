@@ -55,6 +55,13 @@ def test_sparse_matrix():
     assert_equals(0, matrix[1, 0])
     assert_equals(1, matrix[1, 2])
 
+    c.add_document([])
+    matrix = c.sparse_matrix()
+    assert_equals((3, 3), matrix.shape)
+    assert_equals(2, matrix[0, 0])
+    assert_equals(0, matrix[1, 0])
+    assert_equals(1, matrix[1, 2])
+
 
 def test_metadata():
     c, docs = mock_corpus()

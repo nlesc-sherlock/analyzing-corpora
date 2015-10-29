@@ -103,11 +103,12 @@ class Corpus(object):
             word_count_tuples = np.ndarray(shape=(0, 2), dtype=np.int8)
             for n, tokens in enumerate(self.documents):
                 bow = self.dic.doc2bow(tokens)
-                # append to the big bag of words, we will transpose later
-                # to separate the words and counts.
-                word_count_tuples = np.append(word_count_tuples, bow, axis=0)
-                # index the word_count_tuples with the doc id == row number
-                doc_ids = np.append(doc_ids, np.repeat(n, len(bow)))
+                if len(bow) > 0:
+                    # append to the big bag of words, we will transpose later
+                    # to separate the words and counts.
+                    word_count_tuples = np.append(word_count_tuples, bow, axis=0)
+                    # index the word_count_tuples with the doc id == row number
+                    doc_ids = np.append(doc_ids, np.repeat(n, len(bow)))
 
             word_ids = word_count_tuples.T[0]
             word_counts = word_count_tuples.T[1]
