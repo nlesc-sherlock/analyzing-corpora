@@ -27,15 +27,12 @@ if __name__ == '__main__':
         help="python pickle file, containing tokens and metadata")
     parser.add_argument('matrix')
     parser.add_argument('-d', '--dictionary', default=None)
-    parser.add_argument('-m', '--metadata', default=None)
     args = parser.parse_args()
 
     print("loading corpus")
     corpus = load_sparse_corpus(
         documents_file=args.corpus,
-        dictionary_file=args.dictionary,
-        metadata_filename=args.metadata)
+        dictionary_file=args.dictionary)
 
     print("writing matrix to file")
-    corpus.save(sparse_matrix_file=args.matrix,
-                metadata_filename=args.metadata)
+    corpus.save(sparse_matrix_file=args.matrix)
