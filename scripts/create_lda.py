@@ -32,6 +32,7 @@ if __name__ == '__main__':
         '-s', '--sparse-matrix', default=None,
         help="sparse matrix file")
     parser.add_argument('-d', '--dictionary', default=None)
+    parser.add_argument('-j', '--jobs', default=1)
     parser.add_argument('-m', '--metadata', default=None)
     parser.add_argument('-t', '--topics', default=10)
     args = parser.parse_args()
@@ -44,7 +45,7 @@ if __name__ == '__main__':
         metadata_filename=args.metadata)
 
     print("calculating LDA of {0} topics".format(args.topics))
-    lda = ScikitLda(corpus=corpus, n_topics=int(args.topics))
+    lda = ScikitLda(corpus=corpus, n_topics=int(args.topics), n_jobs=int(args.jobs))
     lda.fit()
 
     print("writing to file")
