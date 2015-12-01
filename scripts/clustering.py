@@ -9,19 +9,17 @@ import numpy
 from sklearn.cluster import KMeans
 from sklearn.metrics import pairwise_distances
 from scipy.spatial.distance import cosine
-from scipy import sparse
-import time
+import matplotlib.pyplot as plt
+from sklearn.manifold import MDS
 
 if __name__ == '__main__':
-    #t = timeit.Timer("print 'main statement'", "print 'setup'")
     dirname = "./data/data/enron_out_0.1/"
     topics = []
     for subdir in [x[0] for x in os.walk(dirname)][1:]:
-        # print("subdir", subdir)
+
         for file in os.listdir(subdir):
             if file.endswith('pkl'):
                 print("attempting... ", file)
-
                 lda = ScikitLda.load(subdir+"/"+file)
                 for topic in lda.topics:
                     topics.append(topic / topic.sum())
@@ -31,6 +29,9 @@ if __name__ == '__main__':
                 #            print 'Topic#%d Topic#%d %f' % (i, j, cosine(topics[i], topics[j]))
 
     cos_distance = pairwise_distances(topics, metric='cosine')
-    import pdb; pdb.set_trace()
-    
-#KMeans(n_clusters=2).fit(lda.topics)
+    k_fit = KMeans(n_clusters=3).fit_predict(cos_distance)
+    mds = MDS(n_components=2, max_iter=3000, eps=1e-9, dissimilarity="precomputed", n_jobs=1)
+    pos = mds.fit(cos_distance).embedding_
+    plt.scatter(pos[:,0],pos[:,1], c=k_fit, s=100)
+    plt.show()
+
