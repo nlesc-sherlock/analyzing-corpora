@@ -17,7 +17,9 @@ if __name__ == '__main__':
             if file.endswith('pkl'):
                 lda = ScikitLda.load(dirname+subdir+"/"+file)
                 topics = []
-                print(lda.topics)
+                print "TOPICS in file %s " %file
+                print lda.topics
+
                 for topic in lda.topics:
                     topics.append(topic / topic.sum())
 
