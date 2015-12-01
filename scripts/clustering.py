@@ -15,6 +15,8 @@ if __name__ == '__main__':
         # print("subdir", subdir)
         for file in os.listdir(dirname+subdir):
             if file.endswith('pkl'):
+                print("attempting... ", file)
+
                 lda = ScikitLda.load(dirname+subdir+"/"+file)
                 topics = []
                 print "TOPICS in file %s " %file
@@ -25,7 +27,7 @@ if __name__ == '__main__':
 
                 for i in range(len(topics)):
                     for j in range(i + 1, len(topics)):
-                        print 'Topic#%d Topic#%d %f' % (i, j, cosine(topics[i], topics[j]))
+                            print 'Topic#%d Topic#%d %f' % (i, j, cosine(topics[i], topics[j]))
 
 
 
