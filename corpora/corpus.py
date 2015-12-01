@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# SIM-CITY client
-#
 # Copyright 2015 Netherlands eScience Center <info@esciencecenter.nl>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -109,6 +107,11 @@ class AbstractCorpus(object):
             self.metadata.to_hdf(metadata_filename, 'metadata',
                                  complevel=7, complib='zlib')
 
+    def save_csv(self, dictionary_file=None, metadata_filename=None):
+        if dictionary_file is not None:
+            self.dic.save_as_text(dictionary_file)
+        if metadata_filename is not None:
+            self.metadata.to_csv(metadata_filename)
 
 class Corpus(AbstractCorpus):
     """ Stores a corpus along with its dictionary. """
@@ -214,6 +217,18 @@ class Corpus(AbstractCorpus):
         super(Corpus, self).save(dictionary_file=dictionary_file,
                                  metadata_filename=metadata_filename)
 
+    def save_csv(self, documents_file, dictionary_file=None,
+                 metadata_filename=None):
+            with open(documents_file, 'w') as fout:
+                for docId,doc in enumerate(self.documents):
+                    print('{} {}'.format(docId, doc))
+                    bow = self.dic.doc2bow(doc)
+                    for wordId,count in bow:
+                        fout.write('{} {} {}\n'.format(docId,wordId,count))
+
+            super(Corpus, self).save_csv(dictionary_file=dictionary_file,
+                                     metadata_filename=metadata_filename)
+
     @classmethod
     def load(cls, documents_file=None, dictionary_file=None,
              metadata_filename=None):
@@ -256,6 +271,7 @@ def load_files(user, path, files, result_queue=None):
     for email in files:
         metadata = {'user': user, 'mailbox': mailbox, 'directory': path}
         tokens = tokenizer.tokenize_file(os.path.join(path, email))
+        # corpus.add_document(tokens, metadata, update_dictionary=True)
         corpus.add_document(tokens, metadata, update_dictionary=False)
     if result_queue is None:
         return corpus
@@ -278,29 +294,6 @@ def count_files(directory):
         total_size += len(files)
 
     return total_size
-
-
-def load_enron_corpus(directory):
-    total_size = count_files(directory)
-    print("reading {0} files".format(total_size))
-    corpus = Corpus()
-
-    bar = progressbar.ProgressBar(
-        maxval=total_size,
-        widgets=[progressbar.Percentage(), ' ', progressbar.Bar('=', '[', ']'),
-                 ' ', progressbar.widgets.ETA()])
-    bar.start()
-
-    for user in os.listdir(directory):
-        for path, dirs, files in os.walk(os.path.join(directory, user)):
-            if len(files) > 0:
-                corpus.merge(load_files(user, path, files))
-                bar.update(len(corpus.documents))
-
-    bar.finish()
-
-    return corpus
-
 
 def load_enron_corpus_mp(directory, num_processes=2):
     total_size = count_files(directory)
