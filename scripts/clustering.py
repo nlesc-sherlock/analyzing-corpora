@@ -10,14 +10,13 @@ import zlib
 if __name__ == '__main__':
 
     dirname = "./data/data/enron_out_0.1/"
-
-    for subdir in os.listdir(dirname):
+    for subdir in [x[0] for x in os.walk(dirname)][1:]:
         # print("subdir", subdir)
-        for file in os.listdir(dirname+subdir):
+        for file in os.listdir(subdir):
             if file.endswith('pkl'):
                 print("attempting... ", file)
 
-                lda = ScikitLda.load(dirname+subdir+"/"+file)
+                lda = ScikitLda.load(subdir+"/"+file)
                 topics = []
                 print "TOPICS in file %s " %file
                 print lda.topics
