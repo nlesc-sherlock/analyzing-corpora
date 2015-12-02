@@ -17,7 +17,7 @@
 
 from __future__ import print_function
 import nltk
-import pattern.nl as nlp
+import pattern.en as nlp
 import re
 
 
