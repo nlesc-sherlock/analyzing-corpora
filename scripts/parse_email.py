@@ -28,7 +28,7 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--dictionary', default=None)
     parser.add_argument('-m', '--metadata', default=None)
     parser.add_argument('-p', '--processes', default=2, type=int)
-    parser.add_argument('-f', '--format', default='python', help='Options: python or csv')
+    parser.add_argument('-f', '--format', default='python', help='Options: python, mm or scala')
     args = parser.parse_args()
 
     c = corpus.load_enron_corpus_mp(args.email_folder,
@@ -38,8 +38,11 @@ if __name__ == '__main__':
     if args.format=='python':
         c.save(documents_file=args.corpus, dictionary_file=args.dictionary,
                metadata_filename=args.metadata)
-    elif args.format=='csv':
-        c.save_csv(documents_file=args.corpus, dictionary_file=args.dictionary,
+    elif args.format=='mm':
+        c.save_mm(documents_file=args.corpus, dictionary_file=args.dictionary,
+                   metadata_filename=args.metadata)
+    elif args.format=='scala':
+        c.save_scala(documents_file=args.corpus, dictionary_file=args.dictionary,
                    metadata_filename=args.metadata)
     else:
         print('Unknown save format: {}'.format(args.format))

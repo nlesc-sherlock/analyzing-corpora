@@ -217,14 +217,23 @@ class Corpus(AbstractCorpus):
         super(Corpus, self).save(dictionary_file=dictionary_file,
                                  metadata_filename=metadata_filename)
 
-    def save_csv(self, documents_file, dictionary_file=None,
+    def save_mm(self, documents_file, dictionary_file=None,
+                 metadata_filename=None):
+            scipy.io.mmwrite(documents_file, self.sparse_matrix())
+            super(Corpus, self).save_csv(dictionary_file=dictionary_file,
+                                     metadata_filename=metadata_filename)
+
+    def save_scala(self, documents_file, dictionary_file=None,
                  metadata_filename=None):
             with open(documents_file, 'w') as fout:
+                fout.write('# Special format for Joris ;-)\n')
+                fout.write('{} {}\n'.format(len(self.dic), len(self.documents)))
                 for docId,doc in enumerate(self.documents):
-                    print('{} {}'.format(docId, doc))
+                    fout.write('{}: '.format(docId))
                     bow = self.dic.doc2bow(doc)
                     for wordId,count in bow:
-                        fout.write('{} {} {}\n'.format(docId,wordId,count))
+                        fout.write('({},{})'.format(wordId,count))
+                    fout.write('\n')
 
             super(Corpus, self).save_csv(dictionary_file=dictionary_file,
                                      metadata_filename=metadata_filename)
