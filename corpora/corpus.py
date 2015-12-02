@@ -98,7 +98,7 @@ class AbstractCorpus(object):
         raise NotImplementedError
 
     def save_dictionary(self, dictionary_filename):
-        self.dic.save(dictionary_filename)
+        self.dic.save_as_text(dictionary_filename)
 
     def save(self, dictionary_file=None,
              metadata_filename=None):
@@ -253,7 +253,11 @@ class Corpus(AbstractCorpus):
                    dictionary=dic)
 
     def load_dictionary(self, dictionary_file):
-        self.dic = gensim.corpora.Dictionary.load(dictionary_file)
+        try:
+            self.dic = gensim.corpora.Dictionary.load_from_text(
+                dictionary_file)
+        except UnicodeDecodeError:
+            self.dic = gensim.corpora.Dictionary.load(dictionary_file)
 
     @classmethod
     def load_scala(cls, dictionary, scala_file):
