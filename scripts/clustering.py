@@ -97,6 +97,63 @@ def data_embedding(distance_matrix, type='TSNE'):
     pos = model.fit(distance_matrix).embedding_  # position of points in embedding space
     return pos
 
+def Wk(mu, clusters):
+    K = len(mu)
+    return sum([numpy.linalg.norm(mu[i]-c)**2/(2*len(c)) \
+               for i in range(K) for c in clusters[i]])
+
+# finding optimum k in k means cluster based on
+# https://datasciencelab.wordpress.com/2013/12/27/finding-the-k-in-k-means-clustering/
+def find_centers(X, K):
+    # Initialize to K random centers
+    oldmu = random.sample(X, K)
+    mu = random.sample(X, K)
+    while not has_converged(mu, oldmu):
+        oldmu = mu
+        # Assign all points in X to clusters
+        clusters = cluster_points(X, mu)
+        # Reevaluate centers
+        mu = reevaluate_centers(oldmu, clusters)
+    return(mu, clusters)
+
+def cluster_points(X, mu):
+    clusters  = {}
+    for x in X:
+        bestmukey = min([(i[0], numpy.linalg.norm(x-mu[i[0]])) \
+                    for i in enumerate(mu)], key=lambda t:t[1])[0]
+        try:
+            clusters[bestmukey].append(x)
+        except KeyError:
+            clusters[bestmukey] = [x]
+    return clusters
+
+def reevaluate_centers(mu, clusters):
+    newmu = []
+    keys = sorted(clusters.keys())
+    for k in keys:
+        newmu.append(numpy.mean(clusters[k], axis = 0))
+    return newmu
+
+def has_converged(mu, oldmu):
+    return (set([tuple(a) for a in mu]) == set([tuple(a) for a in oldmu]))
+
+
+def init_board_gauss(N, k):
+    n = float(N)/k
+    X = []
+    for i in range(k):
+        c = (random.uniform(-1, 1), random.uniform(-1, 1))
+        s = random.uniform(0.05,0.5)
+        x = []
+        while len(x) < n:
+            a, b = numpy.array([numpy.random.normal(c[0], s), numpy.random.normal(c[1], s)])
+            # Continue drawing points from the distribution in the range [-1,1]
+            if abs(a) < 1 and abs(b) < 1:
+                x.append([a,b])
+        X.extend(x)
+    X = numpy.array(X)[:N]
+    return X
+
 if __name__ == '__main__':
     dirname = "./data/data/enron_out_0.1/"
     topics = load_topics(dirname)
