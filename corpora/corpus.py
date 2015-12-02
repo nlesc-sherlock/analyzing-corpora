@@ -229,10 +229,16 @@ class Corpus(AbstractCorpus):
                 fout.write('# Special format for Joris ;-)\n')
                 fout.write('{} {}\n'.format(len(self.dic), len(self.documents)))
                 for docId,doc in enumerate(self.documents):
-                    fout.write('{}: '.format(docId))
+                    fout.write('{};'.format(docId))
                     bow = self.dic.doc2bow(doc)
+                    words = []
+                    counts = []
                     for wordId,count in bow:
-                        fout.write('({},{})'.format(wordId,count))
+                        words.append(str(wordId))
+                        counts.append(str(count))
+                    fout.write(','.join(words))
+                    fout.write(';')
+                    fout.write(','.join(counts))
                     fout.write('\n')
 
             super(Corpus, self).save_csv(dictionary_file=dictionary_file,
