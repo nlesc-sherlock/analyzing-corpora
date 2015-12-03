@@ -18,7 +18,6 @@
 from .corpus import (
     Corpus,
     load_vraagtekst_corpus,
-    load_enron_corpus,
     load_enron_corpus_mp,
 )
 from .scikit import (

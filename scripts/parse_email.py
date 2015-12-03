@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# SIM-CITY client
-#
 # Copyright 2015 Netherlands eScience Center <info@esciencecenter.nl>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,15 +27,22 @@ if __name__ == '__main__':
         help="python pickle file, containing tokens")
     parser.add_argument('-d', '--dictionary', default=None)
     parser.add_argument('-m', '--metadata', default=None)
-    parser.add_argument('-p', '--processes', default=2)
+    parser.add_argument('-p', '--processes', default=2, type=int)
+    parser.add_argument('-f', '--format', default='python', help='Options: python, mm or scala')
     args = parser.parse_args()
 
-    if args.processes == 1:
-        c = corpus.load_enron_corpus(args.email_folder)
-    else:
-        c = corpus.load_enron_corpus_mp(args.email_folder,
+    c = corpus.load_enron_corpus_mp(args.email_folder,
                                         num_processes=int(args.processes))
 
     print("storing python pickle file")
-    c.save(documents_file=args.corpus, dictionary_file=args.dictionary,
-           metadata_filename=args.metadata)
+    if args.format=='python':
+        c.save(documents_file=args.corpus, dictionary_file=args.dictionary,
+               metadata_filename=args.metadata)
+    elif args.format=='mm':
+        c.save_mm(documents_file=args.corpus, dictionary_file=args.dictionary,
+                   metadata_filename=args.metadata)
+    elif args.format=='scala':
+        c.save_scala(documents_file=args.corpus, dictionary_file=args.dictionary,
+                   metadata_filename=args.metadata)
+    else:
+        print('Unknown save format: {}'.format(args.format))
