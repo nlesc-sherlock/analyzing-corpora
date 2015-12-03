@@ -16,7 +16,6 @@
 # limitations under the License.
 
 from __future__ import print_function
-import gensim
 import pandas as pd
 import numpy as np
 import itertools
@@ -90,7 +89,7 @@ class SparseCorpus(AbstractCorpus):
             (loader['data'], loader['indices'], loader['indptr']),
             shape=loader['shape'])
 
-        dic = gensim.corpora.Dictionary.load(dictionary_file)
+        dic = AbstractCorpus.load_dictionary(dictionary_file)
         if metadata_filename is not None:
             metadata = pd.read_hdf(metadata_filename, 'metadata')
         else:

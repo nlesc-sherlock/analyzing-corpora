@@ -18,6 +18,7 @@
 from __future__ import print_function
 import gensim
 import pickle
+import cPickle
 import sys
 import os
 import progressbar
@@ -96,6 +97,13 @@ class AbstractCorpus(object):
         """ Create a new corpus with the same dictionary but with a single
         list of tokens. """
         raise NotImplementedError
+
+    @classmethod
+    def load_dictionary(cls, dictionary_file):
+        try:
+            return gensim.corpora.Dictionary.load_from_text(dictionary_file)
+        except (UnicodeDecodeError, cPickle.UnpicklingError):
+            return gensim.corpora.Dictionary.load(dictionary_file)
 
     def save_dictionary(self, dictionary_filename):
         self.dic.save_as_text(dictionary_filename)
@@ -220,12 +228,13 @@ class Corpus(AbstractCorpus):
         if documents_file is None and dictionary_file is None:
             raise ValueError("Need corpus or dictionary filename")
 
-        try:
-            docs = pickle.load(documents_file)
-        except AttributeError:
-            with open(documents_file, 'rb') as f:
-                docs = pickle.load(f)
-        except TypeError:
+        if documents_file is not None:
+            try:
+                docs = pickle.load(documents_file)
+            except AttributeError:
+                with open(documents_file, 'rb') as f:
+                    docs = pickle.load(f)
+        else:
             docs = []
 
         if isinstance(docs, dict):
@@ -235,7 +244,7 @@ class Corpus(AbstractCorpus):
             metadata = None
 
         try:
-            dic = gensim.corpora.Dictionary.load(dictionary_file)
+            dic = AbstractCorpus.load_dictionary(dictionary_file)
         except AttributeError:
             dic = None
         else:
@@ -253,11 +262,7 @@ class Corpus(AbstractCorpus):
                    dictionary=dic)
 
     def load_dictionary(self, dictionary_file):
-        try:
-            self.dic = gensim.corpora.Dictionary.load_from_text(
-                dictionary_file)
-        except UnicodeDecodeError:
-            self.dic = gensim.corpora.Dictionary.load(dictionary_file)
+        self.dic = AbstractCorpus.load_dictionary(dictionary_file)
 
     @classmethod
     def load_scala(cls, dictionary, scala_file):
