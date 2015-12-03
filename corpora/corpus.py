@@ -16,6 +16,7 @@
 from __future__ import print_function
 import gensim
 import pickle
+import cPickle
 import sys
 import os
 import progressbar
@@ -95,8 +96,15 @@ class AbstractCorpus(object):
         list of tokens. """
         raise NotImplementedError
 
+    @classmethod
+    def load_dictionary(cls, dictionary_file):
+        try:
+            return gensim.corpora.Dictionary.load_from_text(dictionary_file)
+        except (UnicodeDecodeError, cPickle.UnpicklingError):
+            return gensim.corpora.Dictionary.load(dictionary_file)
+
     def save_dictionary(self, dictionary_filename):
-        self.dic.save(dictionary_filename)
+        self.dic.save_as_text(dictionary_filename)
 
     def save(self, dictionary_file=None,
              metadata_filename=None):
@@ -229,10 +237,16 @@ class Corpus(AbstractCorpus):
                 fout.write('# Special format for Joris ;-)\n')
                 fout.write('{} {}\n'.format(len(self.dic), len(self.documents)))
                 for docId,doc in enumerate(self.documents):
-                    fout.write('{}: '.format(docId))
+                    fout.write('{};'.format(docId))
                     bow = self.dic.doc2bow(doc)
+                    words = []
+                    counts = []
                     for wordId,count in bow:
-                        fout.write('({},{})'.format(wordId,count))
+                        words.append(str(wordId))
+                        counts.append(str(count))
+                    fout.write(','.join(words))
+                    fout.write(';')
+                    fout.write(','.join(counts))
                     fout.write('\n')
 
             super(Corpus, self).save_csv(dictionary_file=dictionary_file,
@@ -240,16 +254,17 @@ class Corpus(AbstractCorpus):
 
     @classmethod
     def load(cls, documents_file=None, dictionary_file=None,
-             metadata_filename=None):
+             metadata_filename=None, scala_file=None):
         if documents_file is None and dictionary_file is None:
             raise ValueError("Need corpus or dictionary filename")
 
-        try:
-            docs = pickle.load(documents_file)
-        except AttributeError:
-            with open(documents_file, 'rb') as f:
-                docs = pickle.load(f)
-        except TypeError:
+        if documents_file is not None:
+            try:
+                docs = pickle.load(documents_file)
+            except AttributeError:
+                with open(documents_file, 'rb') as f:
+                    docs = pickle.load(f)
+        else:
             docs = []
 
         if isinstance(docs, dict):
@@ -259,9 +274,16 @@ class Corpus(AbstractCorpus):
             metadata = None
 
         try:
-            dic = gensim.corpora.Dictionary.load(dictionary_file)
+            dic = AbstractCorpus.load_dictionary(dictionary_file)
         except AttributeError:
             dic = None
+        else:
+            if len(docs) == 0 and scala_file is not None:
+                try:
+                    docs = Corpus.load_scala(dic, scala_file)
+                except AttributeError:
+                    with open(scala_file, 'rb') as f:
+                        docs = Corpus.load_scala(dic, f)
 
         if metadata is None and metadata_filename is not None:
             metadata = pd.read_hdf(metadata_filename, 'metadata')
@@ -270,7 +292,31 @@ class Corpus(AbstractCorpus):
                    dictionary=dic)
 
     def load_dictionary(self, dictionary_file):
-        self.dic = gensim.corpora.Dictionary.load(dictionary_file)
+        self.dic = AbstractCorpus.load_dictionary(dictionary_file)
+
+    @classmethod
+    def load_scala(cls, dictionary, scala_file):
+        scala_file.readline()  # first line is a comment
+        n_words, n_docs = (int(x) for x in scala_file.readline().split())
+
+        docs = list(itertools.repeat([], n_docs))
+
+        line = scala_file.readline()
+        while len(line) > 0:
+            doc_id, word_ids, counts = line.split(';')
+            doc_id = int(doc_id)
+            word_ids = [int(w) for w in word_ids.split(',')]
+            counts = [int(c) for c in counts.split(',')]
+            for i in range(len(word_ids)):
+                words = itertools.repeat(dictionary[word_ids[i]], counts[i])
+                docs[int(doc_id)].append(words)
+
+            # expand itertools repeats
+            docs = [list(itertools.chain(*doc)) for doc in docs]
+
+            line = scala_file.readline()
+
+        return docs
 
 
 def load_files(user, path, files, result_queue=None):

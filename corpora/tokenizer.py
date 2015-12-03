@@ -17,7 +17,7 @@
 
 from __future__ import print_function
 import nltk
-import pattern.nl as nlp
+import pattern.en as nlp
 import re
 
 
@@ -46,7 +46,7 @@ class Tokenizer(object):
         nltk.corpus.stopwords.words('english') +
         ['', '.', ',', '?', '(', ')', ',', ':', "'",
          u'``', u"''", ';', '-', '!', '%', '&', '...', '=', '>', '<',
-         '#', '_', '~', '+', '*', '/', '\\', '[', ']', '|'
+         '#', '_', '~', '+', '*', '/', '\\', '[', ']', '|', '|', '{', '}',
          u'\u2019', u'\u2018', u'\u2013', u'\u2022',
          u'\u2014', u'\uf02d', u'\u20ac', u'\u2026'])
 
@@ -108,6 +108,7 @@ forward_pattern = re.compile('[\r\n]>[^\r\n]*[\r\n]')
 html_patten = re.compile('<[^<]+?>')
 mime_pattern = re.compile('=\d\d')
 dot_pattern = re.compile('\.\.+')
+startdot_pattern = re.compile('\s[.,;?:&!]+(\S)')
 
 
 def filter_email(text):
@@ -116,4 +117,13 @@ def filter_email(text):
     text = forward_pattern.sub('\n', text)
     text = html_patten.sub(' ', text)
     text = mime_pattern.sub(' ', text)
-    return dot_pattern.sub('. ', text)
+    text = dot_pattern.sub('. ', text)
+
+    idx = 0
+    m = startdot_pattern.search(text, idx)
+    while m:
+        text = text[:m.start()] + ' ' + m.group(1) + text[m.end():]
+        idx = m.end()
+        m = startdot_pattern.search(text, idx)
+
+    return text
