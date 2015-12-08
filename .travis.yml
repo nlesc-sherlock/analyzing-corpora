@@ -20,7 +20,7 @@ before_install:
 install:
   - conda create -q -n test-environment --yes python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib nose pandas pytables
   - source activate test-environment
-  - make install
+  - make install test_requirements
 before_script:
   - python -c "import nltk; nltk.download('stopwords')"
 script:
