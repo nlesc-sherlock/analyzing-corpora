@@ -33,4 +33,4 @@ if __name__ == '__main__':
 
     for i in range(len(topics)):
         for j in range(i + 1, len(topics)):
-            print 'Topic#%d Topic#%d %f' % (i, j, cosine(topics[i], topics[j]))
+            print('Topic#{0} Topic#{1} {2}'.format(i, j, cosine(topics[i], topics[j])))

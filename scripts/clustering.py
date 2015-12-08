@@ -20,6 +20,7 @@ from corpora.scikit import ScikitLda
 import os
 import zlib
 import numpy
+import random
 from sklearn.cluster import KMeans
 from sklearn.metrics import pairwise_distances
 from scipy.spatial.distance import cosine
@@ -30,10 +31,12 @@ import gensim
 from numpy import argsort
 from wordcloud import WordCloud
 
+
 def return_n_words(dic, topic, n_words):
     aa = [(dic[idx],topic[idx]) for idx in argsort(topic)[-n_words:] ]
     return dict(aa)
   
+
 def create_scatter(xs, ys, k_fit, size=100, filename=None):
     num_k = len(set(k_fit))  # number of kernels
     plt.figure(figsize=(15,15))
@@ -50,6 +53,7 @@ def create_scatter(xs, ys, k_fit, size=100, filename=None):
         plt.savefig(filename, dpi=300)
     plt.close()
 
+
 def create_wordcloud(topic_weights, filename=None):
     plt.figure(figsize=(16,40))
     for idx,topic in enumerate(topic_weights):
@@ -65,11 +69,13 @@ def create_wordcloud(topic_weights, filename=None):
         plt.savefig(filename, dpi=300)
     plt.close()
 
+
 def find_topics_per_cluster(topics, k_fit, cluster):
     num_k = len(set(k_fit))  # number of kernels
     cluster_indices = [ numpy.where(k_fit==n) for n in range(0, num_k) ]
     topic_out = [topics[n] for n in cluster_indices[cluster][0]]
     return topic_out
+
 
 def load_topics(dirname):
     topics = []
@@ -82,12 +88,14 @@ def load_topics(dirname):
                     topics.append(topic / topic.sum())
     return topics
 
+
 def find_distance_matrix(topics, metric='cosine'):
     if metric == 'cosine':
         distance_matrix = pairwise_distances(topics, metric='cosine')
         # diagonals should be exactly zero
         numpy.fill_diagonal(distance_matrix, 0)
     return distance_matrix
+
 
 def data_embedding(distance_matrix, type='TSNE'):
     if type == 'TSNE':
@@ -97,10 +105,12 @@ def data_embedding(distance_matrix, type='TSNE'):
     pos = model.fit(distance_matrix).embedding_  # position of points in embedding space
     return pos
 
+
 def Wk(mu, clusters):
     K = len(mu)
     return sum([numpy.linalg.norm(mu[i]-c)**2/(2*len(c)) \
                for i in range(K) for c in clusters[i]])
+
 
 # finding optimum k in k means cluster based on
 # https://datasciencelab.wordpress.com/2013/12/27/finding-the-k-in-k-means-clustering/
@@ -116,6 +126,7 @@ def find_centers(X, K):
         mu = reevaluate_centers(oldmu, clusters)
     return(mu, clusters)
 
+
 def cluster_points(X, mu):
     clusters  = {}
     for x in X:
@@ -127,12 +138,14 @@ def cluster_points(X, mu):
             clusters[bestmukey] = [x]
     return clusters
 
+
 def reevaluate_centers(mu, clusters):
     newmu = []
     keys = sorted(clusters.keys())
     for k in keys:
         newmu.append(numpy.mean(clusters[k], axis = 0))
     return newmu
+
 
 def has_converged(mu, oldmu):
     return (set([tuple(a) for a in mu]) == set([tuple(a) for a in oldmu]))
@@ -153,6 +166,7 @@ def init_board_gauss(N, k):
         X.extend(x)
     X = numpy.array(X)[:N]
     return X
+
 
 if __name__ == '__main__':
     dirname = "./data/data/enron_out_0.1/"
