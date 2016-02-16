@@ -121,7 +121,9 @@ class AbstractCorpus(object):
         if metadata_filename is not None:
             self.metadata.to_csv(metadata_filename)
 
+
 class Corpus(AbstractCorpus):
+
     """ Stores a corpus along with its dictionary. """
 
     def __init__(self, documents=None, metadata=None, dictionary=None):
@@ -173,11 +175,10 @@ class Corpus(AbstractCorpus):
             for doc_id, tokens in enumerate(self.documents):
                 bow = self.dic.doc2bow(tokens)
                 if len(bow) > 0:
-                    new_word_ids, new_counts = zip(*bow)
-
-                    doc_ids += list(itertools.repeat(doc_id, len(bow)))
-                    word_ids += new_word_ids
-                    counts += new_counts
+                    for word_id, count in bow:
+                        doc_ids.append(doc_id)
+                        word_id.append(word_id)
+                        counts.append(count)
 
             self._csr_matrix = scipy.sparse.csr_matrix(
                 (counts, (doc_ids, word_ids)),
@@ -226,31 +227,34 @@ class Corpus(AbstractCorpus):
                                  metadata_filename=metadata_filename)
 
     def save_mm(self, documents_file, dictionary_file=None,
-                 metadata_filename=None):
-            scipy.io.mmwrite(documents_file, self.sparse_matrix())
-            super(Corpus, self).save_csv(dictionary_file=dictionary_file,
+                metadata_filename=None):
+        scipy.io.mmwrite(documents_file, self.sparse_matrix())
+        super(Corpus, self).save_csv(dictionary_file=dictionary_file,
                                      metadata_filename=metadata_filename)
 
     def save_scala(self, documents_file, dictionary_file=None,
-                 metadata_filename=None):
-            with open(documents_file, 'w') as fout:
-                fout.write('# Special format for Joris ;-)\n')
-                fout.write('{} {}\n'.format(len(self.dic), len(self.documents)))
-                for docId,doc in enumerate(self.documents):
-                    fout.write('{};'.format(docId))
-                    bow = self.dic.doc2bow(doc)
-                    words = []
-                    counts = []
-                    for wordId,count in bow:
-                        words.append(str(wordId))
-                        counts.append(str(count))
-                    fout.write(','.join(words))
-                    fout.write(';')
-                    fout.write(','.join(counts))
-                    fout.write('\n')
+                   metadata_filename=None):
+        with open(documents_file, 'w') as fout:
+            fout.write('# Special format for Joris ;-)\n')
+            fout.write('{} {}\n'.format(self.num_features,
+                                        self.num_samples))
 
-            super(Corpus, self).save_csv(dictionary_file=dictionary_file,
-                                     metadata_filename=metadata_filename)
+            bar = progressbar.ProgressBar(
+                maxval=self.num_samples,
+                widgets=[progressbar.Percentage(), ' ',
+                         progressbar.Bar('=', '[', ']'),
+                         ' ', progressbar.widgets.ETA()])
+
+            for docId, doc in bar(enumerate(self.documents)):
+                bow = self.dic.doc2bow(doc)
+                words = (str(word_id) for word_id, count in bow)
+                counts = (str(count) for word_id, count in bow)
+                fout.write('{doc_id};{words};{counts}\n'.format(
+                    doc_id=docId, words=','.join(words),
+                    counts=','.join(counts)))
+
+        self.save_csv(dictionary_file=dictionary_file,
+                      metadata_filename=metadata_filename)
 
     @classmethod
     def load(cls, documents_file=None, dictionary_file=None,
@@ -296,25 +300,44 @@ class Corpus(AbstractCorpus):
 
     @classmethod
     def load_scala(cls, dictionary, scala_file):
-        scala_file.readline()  # first line is a comment
+        # first line is a comment
+        scala_file.readline()
+        # second line a header
         n_words, n_docs = (int(x) for x in scala_file.readline().split())
 
         docs = list(itertools.repeat([], n_docs))
 
+        doc_number = 0
         line = scala_file.readline()
-        while len(line) > 0:
-            doc_id, word_ids, counts = line.split(';')
-            doc_id = int(doc_id)
-            word_ids = [int(w) for w in word_ids.split(',')]
-            counts = [int(c) for c in counts.split(',')]
-            for i in range(len(word_ids)):
-                words = itertools.repeat(dictionary[word_ids[i]], counts[i])
-                docs[int(doc_id)].append(words)
 
-            # expand itertools repeats
-            docs = [list(itertools.chain(*doc)) for doc in docs]
+        bar = progressbar.ProgressBar(
+            maxval=n_docs,
+            widgets=[progressbar.Percentage(), ' ',
+                     progressbar.Bar('=', '[', ']'),
+                     ' ', progressbar.widgets.ETA()])
 
-            line = scala_file.readline()
+        bar.start()
+        try:
+            while len(line) > 0:
+                doc_id, word_ids, counts = line.split(';')
+                doc_id = int(doc_id)
+                if len(word_ids) > 0:
+                    word_ids = [int(w) for w in word_ids.split(',')]
+                    counts = [int(c) for c in counts.split(',')]
+                    for i in range(len(word_ids)):
+                        word = dictionary[word_ids[i]]
+                        for j in range(counts[i]):
+                            docs[doc_id].append(word)
+
+                line = scala_file.readline()
+                doc_number += 1
+                bar.update(doc_number)
+
+        except ValueError as ex:
+            raise ValueError("Cannot parse line {0}".format(doc_number),
+                             ex)
+
+        bar.finish()
 
         return docs
 
@@ -349,6 +372,7 @@ def count_files(directory):
         total_size += len(files)
 
     return total_size
+
 
 def load_enron_corpus_mp(directory, num_processes=2):
     total_size = count_files(directory)

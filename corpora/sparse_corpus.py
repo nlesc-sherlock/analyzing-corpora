@@ -60,9 +60,9 @@ class SparseCorpus(AbstractCorpus):
         cx = self._csr_matrix.tocoo()
         # create document contents as lists of iterators
         for doc_id, word_id, count in itertools.izip(cx.row, cx.col, cx.data):
-            docs[doc_id].append(itertools.repeat(self.dic[word_id], count))
-        # expand the iterators
-        docs = [list(itertools.chain(*doc)) for doc in docs]
+            word = self.dic[word_id]
+            for i in range(count):
+                docs[doc_id].append(word)
 
         return Corpus(documents=docs, dictionary=self.dic,
                       metadata=self.metadata, **kwargs)
