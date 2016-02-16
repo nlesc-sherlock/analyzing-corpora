@@ -1,25 +1,30 @@
 library(shiny)
-library(wordcloud)
+require(wordcloud)
 #------------------------
 # get data
-load("M.RData") #~/sherlock2/repository/scripts/shinyapp/M.RData"
-# dic = read.csv("~/sherlock2/filtered_0.1_5_1000000.dic.txt",sep="\t",header=FALSE)
-# names(dic) =c("number","word","count")
-# theta  = pos$topics # documenst x topics
-# phi = pos$term # topics x terms
-# theta.c <- apply(theta, 1, which.max) # define topic from highest probability
-# a = summary(M)
-# a = merge(a,dic,by.y="number",by.x="j")
-# doc.length <- sapply(split(a,a$i),function(x) nrow(x))  # number of words per file across 11691 files
-# save(dic,theta,phi,theta.c,a,doc.length,M,S,pos,file="M.RData")
+pathM = "~/sherlock/topic group/"
+# pathapp = "~/sherlock/topic group/github/analying-corpora/repository/scripts/shinyapp/"
+
+load(paste0(pathM,"M.RData"))
+dic = read.csv(paste0(pathM,"filtered_0.1_5_1000000.dic.txt"),sep="\t",header=FALSE)
+names(dic) =c("number","word","count")
+
+
+theta  = pos$topics # documenst x topics  matrix
+phi = pos$term# topics x terms matrix
+a = summary(M)
+a = merge(a,dic,by.y="number",by.x="j")
+doc.length <- sapply(split(a,a$i),function(x) nrow(x))  # number of words per file
 docid = unique(a$i)
-term.table = sort(table(a$j),decreasing=TRUE) # frequency table of words
+# term.table = sort(table(a$j),decreasing=TRUE) # table of terms
+term.table = table(a$word)
+
 vocab = names(term.table) # term table
-dict = unique(a[,c('word','j')])
-dict$word = as.character(dict$word)
+
+
+
 term.frequency <- as.integer(term.table)
-
-
+theta.c <- apply(theta, 1, which.max)
 #------------------------
 shinyServer(function(input, output) {
   x = doc.length
@@ -54,8 +59,8 @@ shinyServer(function(input, output) {
     dim(mat) = c(2,3)
     layout(mat=mat, heights=c(1, 4))
     for (i in itopics) {
-      sel = which(x >= input$range[1] & x <= input$range[2] & theta.c == i)
-      A = sort(table(a$j[which(a$i %in% docid[sel] == TRUE)]),decreasing=TRUE) # frequency of words
+      sel = which(x >= input$range[1] & x <= input$range[2] & theta.c == 1)
+      A = sort(table(a$j[which(a$i %in% docid[sel] == TRUE)]),decreasing=TRUE) # table of terms
       if (length(A) > 10) { # only look at most frequent 50 words
         threshold = sort(A,decreasing=TRUE)[10]
         B = which(A >= threshold)
@@ -64,12 +69,7 @@ shinyServer(function(input, output) {
       }
       plot.new()
       text(x=0.5,y=0.5,labels=paste0("Topic ",i),font=2,cex=3)
-      wordlist = as.numeric(names(A[B]))
-      wordlist.names = rep("",length(wordlist))
-      for (h in 1:length(wordlist)) {
-        wordlist.names[h] = as.character(dict$word)[which(dict$j == wordlist[h])][1]
-      }
-      wordcloud(words=wordlist.names,freq=A[B],rot.per=0.01,random.order=FALSE)    #names(A[B])
+      wordcloud(words=names(A[B]),freq=A[B],rot.per=0.01)    
     }
   })
 })
