@@ -15,7 +15,7 @@
 # limitations under the License.
 
 import argparse
-from corpora import load_sparse_corpus
+from corpora import Corpus
 
 
 if __name__ == '__main__':
@@ -29,9 +29,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     print("loading corpus")
-    corpus = load_sparse_corpus(
+    corpus = Corpus.load(
         documents_file=args.corpus,
         dictionary_file=args.dictionary)
 
-    print("writing matrix to file")
+    print("writing scala csv file")
     corpus.save_scala(args.scala_file)

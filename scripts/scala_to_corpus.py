@@ -22,7 +22,7 @@ from corpora import Corpus
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description="load files of scala file and convert it to a python "
-        			"corpus using a dictionary")
+        "corpus using a dictionary")
     parser.add_argument(
         'scala_file',
         help="python pickle file, containing tokens and metadata")
