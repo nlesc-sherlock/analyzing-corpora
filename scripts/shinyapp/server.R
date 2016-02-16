@@ -2,11 +2,13 @@ library(shiny)
 require(wordcloud)
 #------------------------
 # get data
-pathM = "~/sherlock/topic group/"
+setwd("~/sherlock/topic group/github/analyzing-corpora/")
+pathM = "scripts/shinyapp/"
+pathdic = "data/"
 # pathapp = "~/sherlock/topic group/github/analying-corpora/repository/scripts/shinyapp/"
 
 load(paste0(pathM,"M.RData"))
-dic = read.csv(paste0(pathM,"filtered_0.1_5_1000000.dic.txt"),sep="\t",header=FALSE)
+dic = read.csv(paste0(pathdic,"filtered_0.1_5_1000000.dic.txt"),sep="\t",header=FALSE)
 names(dic) =c("number","word","count")
 
 
