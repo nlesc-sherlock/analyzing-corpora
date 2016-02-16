@@ -20,9 +20,7 @@ doc.length <- sapply(split(a,a$i),function(x) nrow(x))  # number of words per fi
 docid = unique(a$i)
 # term.table = sort(table(a$j),decreasing=TRUE) # table of terms
 term.table = table(a$word)
-
 vocab = names(term.table) # term table
-
 
 
 term.frequency <- as.integer(term.table)
@@ -62,7 +60,7 @@ shinyServer(function(input, output) {
     layout(mat=mat, heights=c(1, 4))
     for (i in itopics) {
       sel = which(x >= input$range[1] & x <= input$range[2] & theta.c == 1)
-      A = sort(table(a$j[which(a$i %in% docid[sel] == TRUE)]),decreasing=TRUE) # table of terms
+      A = sort(table(as.character(a$word[which(a$i %in% docid[sel] == TRUE)])),decreasing=TRUE) # table of terms
       if (length(A) > 10) { # only look at most frequent 50 words
         threshold = sort(A,decreasing=TRUE)[10]
         B = which(A >= threshold)
