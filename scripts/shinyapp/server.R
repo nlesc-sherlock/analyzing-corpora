@@ -1,30 +1,33 @@
 library(shiny)
 require(wordcloud)
-#------------------------
-# get data
-setwd("~/sherlock/topic group/github/analyzing-corpora/")
-pathM = "scripts/shinyapp/"
-pathdic = "data/"
-# pathapp = "~/sherlock/topic group/github/analying-corpora/repository/scripts/shinyapp/"
-
-load(paste0(pathM,"M.RData"))
+# set directories
+setwd("~/sherlock/topic group/github/analyzing-corpora/") #set working directory
+pathM = "scripts/shinyapp/" # directory of shinyapp
+pathdic = "data/" #directory of dictionary
+#----------------------------------------
+# load LDA data*
+load(paste0(pathM,"M.RData")) #sparse metrics from vragenlijst
+# M - documents x words [11700 x 56266]
+# pos$terms - topics x words [5 x 56266]
+# pos$topics - documents x topics [11700 x 5]
+# S - object from class 'LDA_VEM' as produced by package topicmodels
+theta  = pos$topics # documenst x topics  matrix
+phi = pos$term # topics x terms matrix
+#----------------------------------------
+# load data labels
 dic = read.csv(paste0(pathdic,"filtered_0.1_5_1000000.dic.txt"),sep="\t",header=FALSE)
 names(dic) =c("number","word","count")
-
-
-theta  = pos$topics # documenst x topics  matrix
-phi = pos$term# topics x terms matrix
-a = summary(M)
-a = merge(a,dic,by.y="number",by.x="j")
+#-----------------------------
+# create additional variables
+a = summary(M) # i (document), j (word), x (count)
+a = merge(a,dic,by.y="number",by.x="j") # merge in labels
 doc.length <- sapply(split(a,a$i),function(x) nrow(x))  # number of words per file
-docid = unique(a$i)
+docid = unique(a$i) # unique file ids
 # term.table = sort(table(a$j),decreasing=TRUE) # table of terms
-term.table = table(a$word)
-vocab = names(term.table) # term table
-
-
-term.frequency <- as.integer(term.table)
-theta.c <- apply(theta, 1, which.max)
+term.table = table(a$word) # how often does every word occur in all the documents
+vocab = names(term.table) # unique words
+term.frequency <- as.integer(term.table) # frequency of unique words
+theta.c <- apply(theta, 1, which.max) # most popular topic per document
 #------------------------
 shinyServer(function(input, output) {
   x = doc.length
@@ -59,10 +62,10 @@ shinyServer(function(input, output) {
     dim(mat) = c(2,3)
     layout(mat=mat, heights=c(1, 4))
     for (i in itopics) {
-      sel = which(x >= input$range[1] & x <= input$range[2] & theta.c == 1)
-      A = sort(table(as.character(a$word[which(a$i %in% docid[sel] == TRUE)])),decreasing=TRUE) # table of terms
-      if (length(A) > 10) { # only look at most frequent 50 words
-        threshold = sort(A,decreasing=TRUE)[10]
+      sel = which(x >= input$range[1] & x <= input$range[2] & theta.c == i) #derive index of documents with word count within range and belonging to topic i
+      A = sort(table(as.character(a$word[which(a$i %in% docid[sel] == TRUE)])),decreasing=TRUE) # derive words belong to those documents and sort them
+      if (length(A) > 6) { # only look at most frequent 50 words
+        threshold = sort(A,decreasing=TRUE)[6]
         B = which(A >= threshold)
       } else {
         B = length(A)
