@@ -3,9 +3,12 @@ require(wordcloud)
 # set directories
 setwd("~/sherlock/topic group/github/analyzing-corpora/") #set working directory
 pathM = "scripts/shinyapp/" # directory of shinyapp
-pathdic = "data/" #directory of dictionary
+datadir = "data/" #directory of dictionary
 #----------------------------------------
 # load LDA data*
+lda = read.csv(paste0(datadir,"enron_lda_15.csv"),header=FALSE) # unique words x topics [175884 x 15]
+dic = read.csv(file=paste0(datadir,"enron_dic.csv"),sep ="\t",header=FALSE) # unique words id and word [175884 x 2]
+
 load(paste0(pathM,"M.RData")) #sparse metrics from vragenlijst
 # M - documents x words [11700 x 56266]
 # pos$terms - topics x words [5 x 56266]
@@ -15,7 +18,7 @@ theta  = pos$topics # documenst x topics  matrix
 phi = pos$term # topics x terms matrix
 #----------------------------------------
 # load data labels
-dic = read.csv(paste0(pathdic,"filtered_0.1_5_1000000.dic.txt"),sep="\t",header=FALSE)
+dic = read.csv(paste0(datadir,"filtered_0.1_5_1000000.dic.txt"),sep="\t",header=FALSE)
 names(dic) =c("number","word","count")
 #-----------------------------
 # create additional variables
