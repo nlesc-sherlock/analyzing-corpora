@@ -5,9 +5,10 @@ library(topicmodels)
 library(LDAvis)
 
 # load example data and run LDA
-pathapp = "sherlock/topic group/repository/scripts/shinyapp/"
+setwd("~/sherlock/topic group/github/analyzing-corpora/")
+pathapp = "scripts/shinyapp/"
 if (file.exists(paste0(pathapp,"M.RData")) == FALSE) {
-  fname =  "~/sherlock/topic group/repository/data/VraagTextCorpus.mm"# "~/sherlock2/data/VraagTextCorpus.mm"
+  fname =  "data/VraagTextCorpus.mm"# "~/sherlock2/data/VraagTextCorpus.mm"
   M = readMM(file=fname)
   S = LDA(x=M,k=5)
   pos = posterior(S)
