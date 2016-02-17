@@ -11,15 +11,20 @@ shinyUI(fluidPage(
   # Sidebar with a slider input for the number of bins
   sidebarLayout(
     sidebarPanel(
-      uiOutput("rangeControls"),
+      # uiOutput("rangeControls"),
       uiOutput("topicControls")
     ),
-    
     # Show a plot of the generated distribution
     mainPanel(
-      plotOutput("distPlot",height=250),
-      plotOutput("topPlot",height=250),
-      plotOutput("wordPlot",height=250)
+      # plotOutput("distPlot",height=250),
+      # plotOutput("topPlot",height=250),
+      plotOutput("wordPlot",height=500)
     )
+  ),
+  fluidRow(
+    column(10, wellPanel(
+      "Example message",
+      verbatimTextOutput("fileReaderText")
+    ))
   )
 ))
