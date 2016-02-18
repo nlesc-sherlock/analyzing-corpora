@@ -10,14 +10,45 @@ We will be working using Python. We might be using the following libraries:
 
 These can be installed with pip (if needed in a [virtualenv](http://docs.python-guide.org/en/latest/dev/virtualenvs/)):
 
-    pip install -r requirements.txt
+```shell
+make install
+```
 
 ## Dataset
-We will be working with the Enron data set. The original data set can be downloaded from [here](https://www.cs.cmu.edu/~./enron/). However, for simplicity, there is a pre-processed version of the data set on [Sherlock's OneDrive](https://nlesc.sharepoint.com/sites/sherlock/_layouts/15/Group.aspx?GroupId=6aad52c4-7dfc-4076-9772-4f9c9180bde2&AppId=Files&id=%2Fsites%2Fsherlock%2FShared%20Documents%2Fdatasets%2Fenron-plaintext).
 
+A good example data set is the Enron email archive. This data set can be downloaded from [here](https://www.cs.cmu.edu/~./enron/).
+
+## How to run
+
+First an email folder is preprocessed to remove MIME headers and keep only the message contents.
+
+```shell
+python scripts/cleanHeaders.py email_folder cleaned_email_folder
+```
+
+Then the cleaned email will be parsed to a single corpus
+```shell
+python scripts/parse_email.py -d dictiononary.dic -m metadata.h5 cleaned_email_folder corpus.pkl
+```
+If the `-m` flag is given, metadata is stored in HDF5 format. In that case, HDF5 should be installed on the system. The dictionary contains all words that are occur in the corpus.
+
+Words that are too frequent (occurs in more than `-a` fraction of the documents) or not sufficiently frequent (occurs in less than `-b` documents) may be removed in order not to pollute the topic space. After that, only the `-k` most frequent words are kept.
+```shell
+python scripts/filter_extremes.py -a 0.1 -b 5 -k 100000 dictionary.dic filtered_dictionary.dic
+```
+After this operation, use filtered_dictionary.dic only.
+
+Once we have a final dictionary, we can generate a sparse matrix of documents times words
+```shell
+python scripts/corpus_to_sparse.py -d filtered_dictionary.dic corpus.pkl corpus_matrix.npz
+```
+
+This can then be used to run the LDA on, where the LDA object will be written to `output_folder`:
+```shell
+mkdir output_folder
+python scripts/create_lda.py -s corpus_matrix.npz -d filtered_dictionary.dic -m metadata.h5 --topics 15 output_folder
+```
 
 ## Further reading
 
 This (fairly recent) [paper](http://idl.cs.washington.edu/papers/topic-check/) talks about the issues with topic model stability -- would be interesting to read and see what we can learn from them.
-
-Other implementation of LDA is available in [spark](https://spark.apache.org/docs/latest/mllib-clustering.html#latent-dirichlet-allocation-lda) which should be more parallel than gensim or scikit -- worth trying?
