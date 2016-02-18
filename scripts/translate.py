@@ -15,6 +15,7 @@ import logging
 import numpy
 import random
 from yandex_translate import YandexTranslate
+from yandex_translate import YandexTranslateException
 import utils
 import argparse
 import sys
@@ -165,7 +166,7 @@ class translate:
     read yandex api key from file
     '''
     f = open(yandex_key, 'r')
-    self.api_key = f.readline()
+    self.api_key = f.readline().strip('\n')
     f.close()
 
 
@@ -203,7 +204,7 @@ class translate:
     dir_name = os.path.dirname(dest_file)
     utils._create_directory(dir_name)
     f = open(dest_file, 'w')
-    f.write(self.translated_text)
+    f.write(self.translated_text['text'][0].encode('utf-8'))
     f.close()
 
 
