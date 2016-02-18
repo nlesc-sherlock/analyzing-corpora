@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# SIM-CITY client
-#
 # Copyright 2015 Netherlands eScience Center <info@esciencecenter.nl>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import argparse
 from corpora.corpus import Corpus
 
@@ -34,4 +31,3 @@ if __name__ == '__main__':
     corpus.generate_dictionary()
     print("saving dictionary")
     corpus.save_dictionary(args.dictionary)
-

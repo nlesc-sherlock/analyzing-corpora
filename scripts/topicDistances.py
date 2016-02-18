@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# SIM-CITY client
-#
 # Copyright 2015 Netherlands eScience Center <info@esciencecenter.nl>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,4 +31,5 @@ if __name__ == '__main__':
 
     for i in range(len(topics)):
         for j in range(i + 1, len(topics)):
-            print('Topic#{0} Topic#{1} {2}'.format(i, j, cosine(topics[i], topics[j])))
+            print('Topic#{0} Topic#{1} {2}'.format(
+                i, j, cosine(topics[i], topics[j])))

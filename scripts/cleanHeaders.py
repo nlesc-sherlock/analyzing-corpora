@@ -31,7 +31,7 @@ def extractEmailBody(filename):
 def removeQuotedText(body):
     # Remove everything after 'Original Message'
     cutIdx = body.find('-----Original Message')
-    if cutIdx!=-1:
+    if cutIdx != -1:
         body = body[:cutIdx]
     return body
 
@@ -51,7 +51,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     basedir = args.input_folder  # 'enron_mail'
-    savedir = args.output_folder # 'enron_mail_clean'
+    savedir = args.output_folder  # 'enron_mail_clean'
     docs = glob(basedir + '/**/*.')
 
     for doc in docs:

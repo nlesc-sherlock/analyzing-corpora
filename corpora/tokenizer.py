@@ -22,6 +22,7 @@ import re
 
 
 class Tokenizer(object):
+
     """ Stores a corpus along with its dictionary. """
 
     standard_nlp_tags = frozenset([

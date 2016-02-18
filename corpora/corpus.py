@@ -121,7 +121,9 @@ class AbstractCorpus(object):
         if metadata_filename is not None:
             self.metadata.to_csv(metadata_filename)
 
+
 class Corpus(AbstractCorpus):
+
     """ Stores a corpus along with its dictionary. """
 
     def __init__(self, documents=None, metadata=None, dictionary=None):
@@ -226,30 +228,30 @@ class Corpus(AbstractCorpus):
                                  metadata_filename=metadata_filename)
 
     def save_mm(self, documents_file, dictionary_file=None,
-                 metadata_filename=None):
-            scipy.io.mmwrite(documents_file, self.sparse_matrix())
-            super(Corpus, self).save_csv(dictionary_file=dictionary_file,
+                metadata_filename=None):
+        scipy.io.mmwrite(documents_file, self.sparse_matrix())
+        super(Corpus, self).save_csv(dictionary_file=dictionary_file,
                                      metadata_filename=metadata_filename)
 
     def save_scala(self, documents_file, dictionary_file=None,
-                 metadata_filename=None):
-            with open(documents_file, 'w') as fout:
-                fout.write('# Special format for Joris ;-)\n')
-                fout.write('{} {}\n'.format(len(self.dic), len(self.documents)))
-                for docId,doc in enumerate(self.documents):
-                    fout.write('{};'.format(docId))
-                    bow = self.dic.doc2bow(doc)
-                    words = []
-                    counts = []
-                    for wordId,count in bow:
-                        words.append(str(wordId))
-                        counts.append(str(count))
-                    fout.write(','.join(words))
-                    fout.write(';')
-                    fout.write(','.join(counts))
-                    fout.write('\n')
+                   metadata_filename=None):
+        with open(documents_file, 'w') as fout:
+            fout.write('# Special format for Joris ;-)\n')
+            fout.write('{} {}\n'.format(len(self.dic), len(self.documents)))
+            for docId, doc in enumerate(self.documents):
+                fout.write('{};'.format(docId))
+                bow = self.dic.doc2bow(doc)
+                words = []
+                counts = []
+                for wordId, count in bow:
+                    words.append(str(wordId))
+                    counts.append(str(count))
+                fout.write(','.join(words))
+                fout.write(';')
+                fout.write(','.join(counts))
+                fout.write('\n')
 
-            super(Corpus, self).save_csv(dictionary_file=dictionary_file,
+        super(Corpus, self).save_csv(dictionary_file=dictionary_file,
                                      metadata_filename=metadata_filename)
 
     @classmethod
@@ -349,6 +351,7 @@ def count_files(directory):
         total_size += len(files)
 
     return total_size
+
 
 def load_enron_corpus_mp(directory, num_processes=2):
     total_size = count_files(directory)
