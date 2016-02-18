@@ -228,7 +228,7 @@ class translate:
     modify database after file is processed
     '''
     self._connect_to_database()
-    # query database for all unprocessed files
+    # update database processed
     self.cursor.execute("UPDATE filelist SET processed=(?) WHERE filename=(?)",
                         (True, self.next_file,))
     # commit changes to database
@@ -242,9 +242,12 @@ class translate:
     modify database after file is processed
     '''
     self._connect_to_database()
-    # query database for all unprocessed files
+    # update database skipped
     self.cursor.execute("UPDATE filelist SET skipped=(?) WHERE filename=(?)",
                         (True, self.next_file,))
+    # update database processed
+    self.cursor.execute("UPDATE filelist SET processed=(?) WHERE filename=(?)",
+                        (True, self.next_file,))    
     # commit changes to database
     self.connection.commit()
     # close connection
