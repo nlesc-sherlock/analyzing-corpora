@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# SIM-CITY client
 #
 # Copyright 2015 Netherlands eScience Center <info@esciencecenter.nl>
 #
