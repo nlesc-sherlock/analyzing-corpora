@@ -24,7 +24,9 @@ from scipy.sparse import csr_matrix
 
 
 class SparseCorpus(AbstractCorpus):
+
     """ Stores a sparse matrix along with its static dictionary. """
+
     def __init__(self, sparse_matrix, dictionary, metadata=None):
         super(SparseCorpus, self).__init__(metadata=metadata,
                                            dictionary=dictionary,

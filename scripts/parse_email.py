@@ -28,21 +28,22 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--dictionary', default=None)
     parser.add_argument('-m', '--metadata', default=None)
     parser.add_argument('-p', '--processes', default=2, type=int)
-    parser.add_argument('-f', '--format', default='python', help='Options: python, mm or scala')
+    parser.add_argument(
+        '-f', '--format', default='python', help='Options: python, mm or scala')
     args = parser.parse_args()
 
     c = corpus.load_enron_corpus_mp(args.email_folder,
-                                        num_processes=int(args.processes))
+                                    num_processes=int(args.processes))
 
     print("storing python pickle file")
-    if args.format=='python':
+    if args.format == 'python':
         c.save(documents_file=args.corpus, dictionary_file=args.dictionary,
                metadata_filename=args.metadata)
-    elif args.format=='mm':
+    elif args.format == 'mm':
         c.save_mm(documents_file=args.corpus, dictionary_file=args.dictionary,
-                   metadata_filename=args.metadata)
-    elif args.format=='scala':
+                  metadata_filename=args.metadata)
+    elif args.format == 'scala':
         c.save_scala(documents_file=args.corpus, dictionary_file=args.dictionary,
-                   metadata_filename=args.metadata)
+                     metadata_filename=args.metadata)
     else:
         print('Unknown save format: {}'.format(args.format))
