@@ -203,7 +203,7 @@ class translate:
     dir_name = os.path.dirname(dest_file)
     utils._create_directory(dir_name)
     f = open(dest_file, 'w')
-    f.write(self.text)  # TODO: change to translated_text
+    f.write(self.translated_text)
     f.close()
 
 
