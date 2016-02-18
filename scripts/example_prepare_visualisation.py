@@ -1,13 +1,14 @@
 #!/usr/bin/python
 from prepare_for_visualisation import prepare_for_visualisation
 
-utomat = 'data/enron_lda_15_norm.csv'
+utomat = 'data/enron_lda_15.csv'
 dictionary = 'data/enron_dic.csv'
 delim = ','
-maxword = 100
+maxword = 10
 wpdict = prepare_for_visualisation(utomat,dictionary,delim,maxword)
 
-print wpdict['Topic 1']
+print wpdict
+print len(wpdict['Topic 1'])
 
 from flask import Flask, jsonify
 from flask.ext.cors import CORS
