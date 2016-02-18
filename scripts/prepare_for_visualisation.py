@@ -53,7 +53,7 @@ def prepare_for_visualisation(utomat, dictionary, delim=',', maxword=10):
     utoorder_words = np.zeros(shape=utonorm.shape)
     idx = utonorm.argsort(axis=0)
     utoorder = idx[::-1]
-    utonorm = np.around(utonorm, decimals=3)
+    # utonorm = np.around(utonorm,decimals=3)
     # now calculate order of words within each topic (output words)
     allWords = []
     for j in range(utoorder.shape[1]):
