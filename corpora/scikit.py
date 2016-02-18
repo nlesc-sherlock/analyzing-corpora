@@ -38,6 +38,9 @@ class ScikitLda(object):
         self._corpus = corpus
         self._weights = None
 
+    def fit_transform(self):
+        return self.lda.fit_transform(self.corpus.sparse_matrix())
+
     def fit(self):
         self.lda.fit(self.corpus.sparse_matrix())
 

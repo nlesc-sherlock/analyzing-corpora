@@ -18,6 +18,7 @@
 import os
 import argparse
 from corpora import load_sparse_corpus, ScikitLda
+import csv
 
 
 if __name__ == '__main__':
@@ -46,8 +47,24 @@ if __name__ == '__main__':
 
     print("calculating LDA of {0} topics".format(args.topics))
     lda = ScikitLda(corpus=corpus, n_topics=int(args.topics), n_jobs=int(args.jobs))
-    lda.fit()
 
-    print("writing to file")
-    lda.save(os.path.join(args.output_folder,
-                          'lda_{0}.pkl'.format(args.topics)))
+    fname = os.path.join(args.output_folder, 'lda_{0}.pkl'.format(args.topics))
+    print("writing to file: lda model {0}".format(fname))
+    lda.save(fname)
+
+    fname = os.path.join(args.output_folder, 'lda_documents_{0}.csv'.format(args.topics))
+    print("writing to file: topics vs documents {0}".format(fname))
+    topic_document_matrix = lda.fit_transform()
+    with open(fname, 'w') as f:
+        writer = csv.writer(f, delimiter='\t', fieldnames=['v{0}'.format(i) for i in range(lda.n_topics)])
+        writer.writeheader()
+        for sample in topic_document_matrix:
+            writer.writerow([str(x) for x in sample])
+
+    fname = os.path.join(args.output_folder, 'lda_{0}.csv'.format(args.topics))
+    print("writing to file: topics vs terms {0}".format(fname))
+    with open(fname, 'w') as f:
+        writer = csv.writer(f, delimiter='\t', fieldnames=['v{0}'.format(i) for i in range(lda.n_topics)])
+        writer.writeheader()
+        for sample in lda.topics:
+            writer.writerow([str(x) for x in sample])
