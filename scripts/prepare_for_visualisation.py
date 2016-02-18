@@ -36,6 +36,20 @@ def prepare_for_visualisation(utomat, dictionary, delim=',', maxword=10):
     # load data
     with open(dictionary, 'r') as fin:  # 'data/enron_dic.csv'
         lines = fin.readlines()
+<<<<<<< HEAD
+    tmpLines = [ line.strip().split('\t') for line in lines ]
+    # dic = { l[0]: l[1] for l in tmpLines }
+    dic = { int(l[0]): (l[1].strip('"')) for l in tmpLines }
+    uto = np.loadtxt(utomat, delimiter=delim) #','
+    # RS1 = uto.sum(axis=1)
+    # RS2 = uto.sum(axis=0)
+    # #normalized word by topic array
+    utonorm = uto
+    # utonorm = uto / RS1[:,None]
+    # utonorm = utonorm / RS2[None,:]
+
+    #winning topic per word
+=======
     tmpLines = [line.strip().split('\t') for line in lines]
     dic = {l[0]: l[1] for l in tmpLines}
     uto = np.loadtxt(utomat, delimiter=delim)  # ','
@@ -45,6 +59,7 @@ def prepare_for_visualisation(utomat, dictionary, delim=',', maxword=10):
     utonorm = uto / RS1[:, None]
     utonorm = utonorm / RS2[None, :]
     # winning topic per word
+>>>>>>> f444d351eecf34082b2476430ce649626d07e9f1
     winninguto = utonorm.argmax(axis=1)
     # frequency table for number of words that are most popular per topic
     Nwordsto = Counter(winninguto)
@@ -57,15 +72,26 @@ def prepare_for_visualisation(utomat, dictionary, delim=',', maxword=10):
     # now calculate order of words within each topic (output words)
     allWords = []
     for j in range(utoorder.shape[1]):
+<<<<<<< HEAD
+        topic = utoorder[:,j]
+        tmp = [ dic[wordIdx] for wordIdx in topic ]
+=======
         topic = utoorder[:, j]
         tmp = [dic[str(wordIdx)] for wordIdx in topic]
+>>>>>>> f444d351eecf34082b2476430ce649626d07e9f1
         allWords.append(tmp)
         #allWords = np.array(allWords).T
         allProbs = []
     for j in range(utoorder.shape[1]):
+<<<<<<< HEAD
+        topic = utoorder[:,j]
+        tmp = [ utonorm[wordIdx,j] for wordIdx in topic ]
+        tmp = np.around(1-np.cumsum(tmp),decimals=3)
+=======
         topic = utoorder[:, j]
         tmp = [utonorm[wordIdx, j] for wordIdx in topic]
         tmp = np.around(1 - np.cumsum(tmp), decimals=3)
+>>>>>>> f444d351eecf34082b2476430ce649626d07e9f1
         allProbs.append(tmp)
     # merge probabilities and words into one large tuple
     allProbs_flat = [y for x in allProbs for y in x]

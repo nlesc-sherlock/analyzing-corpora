@@ -15,13 +15,19 @@
 # limitations under the License.
 from prepare_for_visualisation import prepare_for_visualisation
 
-utomat = 'data/enron_lda_15_norm.csv'
+utomat = 'data/enron_lda_15.csv'
 dictionary = 'data/enron_dic.csv'
 delim = ','
+<<<<<<< HEAD
+maxword = 10
+wpdict = prepare_for_visualisation(utomat,dictionary,delim,maxword)
+=======
 maxword = 100
 wpdict = prepare_for_visualisation(utomat, dictionary, delim, maxword)
+>>>>>>> f444d351eecf34082b2476430ce649626d07e9f1
 
-print wpdict['Topic 1']
+print wpdict
+print len(wpdict['Topic 1'])
 
 from flask import Flask, jsonify
 from flask.ext.cors import CORS

@@ -79,9 +79,6 @@ shinyServer(function(input, output) {
  
   
   output$wordPlot <- renderPlot({ # word cloud... replace by cloud based on phi
-
-    wordPlotInput(Ntopics)
-    
     #     if (length(input$topics) > 3) {
 #       itopics = as.numeric(input$topics[1:3])
 #     } else {
