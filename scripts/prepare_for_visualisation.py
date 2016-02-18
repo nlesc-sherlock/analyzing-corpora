@@ -1,7 +1,7 @@
 import numpy as np
 from collections import Counter
 
-def prepare_for_visualisation(utomat,dictionary,delim):
+def prepare_for_visualisation(utomat,dictionary,delim=',',maxword=10):
     """
     input:
     - unittopicmat:  path to csv file with unit (e.g. a word or a document) by topic matrix
@@ -41,5 +41,24 @@ def prepare_for_visualisation(utomat,dictionary,delim):
         topic = utoorder[:,j]
         tmp = [ dic[str(wordIdx)] for wordIdx in topic ]
         allWords.append(tmp)
-    allWords = np.array(allWords).T
-    return allWords, utoorder, utonorm, winninguto, Nwordsto
+    #allWords = np.array(allWords).T
+    allProbs = []
+    for j in range(utoorder.shape[1]):
+        topic = utoorder[:,j]
+        tmp = [ utonorm[wordIdx,j] for wordIdx in topic ]
+        allProbs.append(tmp)
+    #merge probabilities and words into one large tuple
+    allProbs_flat = [y for x in allProbs for y in x]
+    allWords_flat = [y for x in allWords for y in x]
+    output = zip(allProbs_flat,allWords_flat)
+    # built dictionary of topics, words and probabilities
+    wpdict = {}
+    ntopics = utonorm.shape[1]
+    nw = utonorm.shape[0]
+    if maxword > nw:
+        maxword = nw
+    for i in range(ntopics):
+        i0 = i*nw
+        wpdict["Topic %i" %(i) ] = output[i0:(i0+maxword-1)]
+    # return allWords, utoorder, utonorm, winninguto, Nwordsto, wpdict
+    return wpdict
