@@ -7,12 +7,14 @@ def prepare_for_visualisation(utomat,dictionary,delim=',',maxword=10):
     - unittopicmat:  path to csv file with unit (e.g. a word or a document) by topic matrix
     - dictionary:  path to csv file with dictionrary
     - delim: delimiter used in csv file
+    - maxword: maximum number of words to output in the dictionary
     output:
-    - allWords: N units by N topics array with ranking of units
-    - utoorder: N units by N topics array with ranking of unit indices
-    - utonorm: N units by N topics array with normalized probabilities
-    - winninguto: N units array with winning topic per unit
-    - Nwordsto: N topic array with number of winning units per topic
+    - wpdict: dictionary with most popular words and their probability per topic
+    # turned off: - allWords: N units by N topics array with ranking of units
+    # turned off: - utoorder: N units by N topics array with ranking of unit indices
+    # turned off: - utonorm: N units by N topics array with normalized probabilities
+    # turned off: - winninguto: N units array with winning topic per unit
+    # turned off: - Nwordsto: N topic array with number of winning units per topic
     """
 
     # load data
@@ -27,12 +29,10 @@ def prepare_for_visualisation(utomat,dictionary,delim=',',maxword=10):
     #winning topic per word
     winninguto = utonorm.argmax(axis=1)
     #frequency table for number of words that are most popular per topic
-
     Nwordsto = Counter(winninguto)
     # now calculate order of word within each topic (output index)
     utoorder = np.zeros(shape=utonorm.shape)
     utoorder_words = np.zeros(shape=utonorm.shape)
-
     idx = utonorm.argsort(axis=0)
     utoorder = idx[::-1]
     # now calculate order of words within each topic (output words)
