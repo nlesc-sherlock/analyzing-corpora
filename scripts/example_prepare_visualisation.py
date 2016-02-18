@@ -17,13 +17,8 @@ CORS(app)
 
 @app.route('/getdata')
 def getData():
-    # words = allWords[:10,:].tolist()
-    words = [
-        [ ('hello', 0.9), ('world', 0.05), ('!', 0.05)],  # T1
-        [ ('hola', 0.9), ('mundo', 0.05), ('!', 0.05)],  # T2
-    ]
     return jsonify(
-            words=words
+            words=wpdict
             # utoorder, utonorm, winninguto, Nwordsto
         )
 
