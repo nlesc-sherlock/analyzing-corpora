@@ -15,5 +15,4 @@ doto = read.csv(file=paste0(datadir,"enron_document_topics_15.csv"),sep ="\t",he
 # GET DOCUMENT DICTIONARY (id -> filename)
 # ... not available yet
 
-
 out = prepare_visualisation(dic,woto,doto)
