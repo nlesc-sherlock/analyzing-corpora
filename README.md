@@ -74,26 +74,24 @@ Data preparation: build dictionary, convert documents go bag-of-words (correct?)
    **Inputs:**
    -`? Dictionary, metadata, bags of words ?`  
 
-   **Outputs:**
-   metadata:
-   - id
-   - PATH
-   - user (sender)
-   - from
-   - to
-   - cc
-   - bcc
-   - sent data-type/rec. data-type
-   - MIMMSGID *
-   - subject
-   Word dictionary:
-   - dictionary linking wordid (integer) and word (character)
-   Word by topic matrix (the LDA model)
-   - matrix wordid (integer) by topicid (integer)
-   Document by topic matrix (the LDA classification)
-   - matrix documentid (integer) by topicid (integer)
-
-
+   **Outputs:**  
+    - metadata:
+      - id: e-mail unique identifier
+      - path to e-mail file
+      - user (sender): character
+      - from: emailaddress
+      - to: list of emailaddress(es)
+      - cc: list of emailaddress(es)
+      - bcc: list of emailaddress(es)
+      - sent data-type/rec. data-type
+      - MIMMSGID *
+      - subject: subject of the e-mail, one character string
+    - Word dictionary:
+      - dictionary linking wordid (integer) and word (character)
+    - Word by topic matrix / the LDA model
+      - weights (floating point between 0 and 1) for wordid (integer) x topicid (integer)
+    - Document by topic matrix / the LDA classification
+      - weights  (floating point between 0 and 1) for documentid (integer) x topicid (integer)
 
 ## Step 4 - Visualization
 
