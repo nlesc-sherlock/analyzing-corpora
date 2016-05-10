@@ -10,6 +10,10 @@ CORS(app)
 # Topic x words matrix
 _data = np.loadtxt('enron_small_lda_transposed.csv', delimiter=',')
 
+# Cluster x topics matrix
+_data2 = np.loadtxt('enron_small_clustertopics.csv', delimiter=',')
+
+
 _idToWord = {}
 with open('enron_small_dic.csv', 'r') as fin:
     for line in fin:
@@ -31,6 +35,17 @@ def getWordsInTopic(n):
     wordArray = [ {"name": _idToWord[wId], "size": 1} for wId in topWordIds ]
     return wordArray
 
+def getTopicsInCluster(n): #newly added
+    pct = 0.20
+    topicIds = _data2[:,n]
+    topicIds /= topicIds.sum()
+    sortIdx = topicIds.argsort()
+    sortIdx = sortIdx[::-1]
+    clustertopicIds = sortIdx[topicIds[sortIdx].cumsum()<pct]
+
+    topicArray = [ {"name": _idToTopic[wId], "size": 1} for wId in clustertopicIds ]
+    return topicArray
+
 def getTopic(n):
     topic = {
         'name'    : 'Topic %d'%n,
@@ -38,16 +53,23 @@ def getTopic(n):
     }
     return topic
 
-def getTopicsInCluster(nCluster):
-    topics = [ getTopic(n) for n in range(_data.shape[1]) ]
-    return {
-        'name': 'Cluster %d'%nCluster,
-        'children': topics
+def getCluster(n): #newly added
+    cluster = {
+        'name'    : 'Cluster %d'%n,
+        'children': getTopicsInCluster(n)
     }
+    return cluster
 
-@app.route('/ronald')
-def ronaldData():
-    clusters = [ getTopicsInCluster(n) for n in range(1) ]
+# def getTopicsInCluster(nCluster):
+#     topics = [ getTopic(n) for n in range(_data.shape[1]) ]
+#     return {
+#         'name': 'Cluster %d'%nCluster,
+#         'children': topics
+#     }
+
+@app.route('/visualisation')
+def visualisationData():
+    clusters = [ getTopicsInCluster(n) for n in range(_data2.shape[1]) ]
     data = {
         'name'    : 'ENRON',
         'children': clusters
