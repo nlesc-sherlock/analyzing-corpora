@@ -62,27 +62,27 @@ The initial enron email data set can be found [here](https://www.cs.cmu.edu/~./e
 
     forqlift fromarchive enron_mail_20150507.tgz --file enron_mail.seq --compress bzip2 --data-type text
 
+**Inputs:**
+  - .tgz file
+
+**Outputs:**
+  - .seq file with inside all e-mails
+
+
 ## Step 2 - Preprocessing
 
-2.1 Use Forklift to put all e-mails in a sequency file
+Prepare e-mails as stored in sequence file for LDA classication, with [EmailParser.scala](https://github.com/nlesc-sherlock/spark-lda/blob/master/src/main/scala/EmailParser.scala).
+
+    spark-submit --class EmailParser $myjar data/email/emails.seq --metadata data/metadata.seq --dictionary data/dic.csv --corpus data/bow.csv
 
 **Inputs:**
-- Path to folder with raw e-mails
+ - enron_mail.seq sequence file with all the e-mails
+ - specify output-files
+ - optional arguments for EmailParser:
 
-**Output:**
-- sequence file
+For documentation on arguments do:
 
-2.2 Use EmailParser.scala to proces the sequence file
-
-**Inputs:**
- - enron_mail.seq sequence file with all the e-mails  
- - input: string?
- - corpus: string?
- - dictionary: string?
- - metadata: string?
- - above: fraction of documents above which words should not occur
- - below: fraction of documents below which words should not occur
- - keep_n: keep the n most frequent words, after applying above and below
+    spark-submit --class EmailParser $myjar --help
 
 **Outputs:**
   - Dictionary:
@@ -101,11 +101,6 @@ The initial enron email data set can be found [here](https://www.cs.cmu.edu/~./e
    - MIMMSGID *
    - subject: subject of the e-mail, one character string
 
-**Details:**
-Prepare original raw e-mails for LDA classication in the next step
-
-Command: EmailParser.scala (see https://github.com/nlesc-sherlock/spark-lda)
-Uses / dependencies: Scala? Sparke? Python?
 
 ## Step 3 - Run LDA: document how this is run.
 This step could be run multiple times (for different number of topics).
