@@ -74,6 +74,30 @@ Data preparation: build dictionary, convert documents go bag-of-words (correct?)
    ** Inputs: ** `? Dictionary, metadata, bags of words ?`  
    ** Outputs: ** `? Topic model ?`
 
+   **Inputs:**
+   -
+
+   **Outputs:**
+   * metadata:
+   - id
+   - PATH
+   - user (sender)
+   - from
+   - to
+   - cc
+   - bcc
+   - sent data-type/rec. data-type
+   - MIMMSGID *
+   - subject
+   * Word dictionary:
+   - dictionary linking wordid (integer) and word (character)
+   * Word by topic matrix (the LDA model)
+   - matrix wordid (integer) by topicid (integer)
+   * Document by topic matrix (the LDA classification)
+   - matrix documentid (integer) by topicid (integer)
+
+
+
 ## Step 4 - Visualization
 
 ### Step 4.a - Run clustering / visualization (IPython notebook)
