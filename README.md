@@ -67,6 +67,7 @@ Data preparation: build dictionary, convert documents go bag-of-words (correct?)
 
 **Inputs:**
   - enron_mail.seq sequence file with all the e-mails  
+
 **Outputs:**
   - Dictionary:
     - dictionary linking wordid (integer) and word (character)
