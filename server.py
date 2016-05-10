@@ -38,12 +38,19 @@ def getTopic(n):
     }
     return topic
 
+def getTopicsInCluster(nCluster):
+    topics = [ getTopic(n) for n in range(_data.shape[1]) ]
+    return {
+        'name': 'Cluster %d'%nCluster,
+        'children': topics
+    }
+
 @app.route('/ronald')
 def ronaldData():
-    topics = [ getTopic(n) for n in range(_data.shape[1]) ]
+    clusters = [ getTopicsInCluster(n) for n in range(1) ]
     data = {
         'name'    : 'ENRON',
-        'children': topics
+        'children': clusters
     }
     return jsonify(data=data)
 
