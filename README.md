@@ -6,44 +6,6 @@ The following sections describes the process for going from a bunch of plain tex
 ## Tools
 We are working in a mixture of Python, Scala, Spark, R, and other tools. Setup instructions for each of these tools is described here.
 
-### Python setup
-Python dependencies can be with pip (in a [virtualenv](http://docs.python-guide.org/en/latest/dev/virtualenvs/) if desired):
-
-```shell
-make install
-```
-
-## How to run
-
-First an email folder is preprocessed to remove MIME headers and keep only the message contents.
-
-```shell
-python scripts/cleanHeaders.py email_folder cleaned_email_folder
-```
-
-Then the cleaned email will be parsed to a single corpus
-```shell
-python scripts/parse_email.py -d dictiononary.dic -m metadata.h5 cleaned_email_folder corpus.pkl
-```
-If the `-m` flag is given, metadata is stored in HDF5 format. In that case, HDF5 should be installed on the system. The dictionary contains all words that are occur in the corpus.
-
-Words that are too frequent (occurs in more than `-a` fraction of the documents) or not sufficiently frequent (occurs in less than `-b` documents) may be removed in order not to pollute the topic space. After that, only the `-k` most frequent words are kept.
-```shell
-python scripts/filter_extremes.py -a 0.1 -b 5 -k 100000 dictionary.dic filtered_dictionary.dic
-```
-After this operation, use filtered_dictionary.dic only.
-
-Once we have a final dictionary, we can generate a sparse matrix of documents times words
-```shell
-python scripts/corpus_to_sparse.py -d filtered_dictionary.dic corpus.pkl corpus_matrix.npz
-```
-
-This can then be used to run the LDA on, where the LDA object will be written to `output_folder`:
-```shell
-mkdir output_folder
-python scripts/create_lda.py -s corpus_matrix.npz -d filtered_dictionary.dic -m metadata.h5 --topics 15 output_folder
-```
-
 ### Spark setup
 How do you get spark running locally? Is it necessary? Or is this optional (because we are using Spark on the cluster)
 
@@ -57,6 +19,11 @@ To install forqlift, simply [download](http://www.exmachinatech.net/projects/for
 A good example data set is the Enron email archive. This data set can be downloaded from [here](https://www.cs.cmu.edu/~./enron/).
 
 ## Step 1 - The original data
+**Inputs:**
+  - enron_mail_20150507.tgz original data set  
+
+**Outputs:**
+  - enron_mail.seq sequence file
 
 The initial enron email data set can be found [here](https://www.cs.cmu.edu/~./enron/enron_mail_20150507.tgz). This compressed file contains plain text emails. Use `forqlift` to create a sequence file:
 
@@ -88,7 +55,7 @@ The initial enron email data set can be found [here](https://www.cs.cmu.edu/~./e
 Prepare original raw e-mails for LDA classication in the next step:
 - remove all words occurring in more than 'above' FRACTION of documents.
 - remove all words occurring in less than 'below' NUMBER of documents.
-- keep the n most frequent words, after the previous step. 
+- keep the n most frequent words, after the previous step.
 - extract metadata
 - remove stop words
 - remove signatures
