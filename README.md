@@ -50,11 +50,11 @@ arguments.
     spark-submit --class EmailParser $myjar --help
 
 **Outputs:**
-  - Dictionary:
+  - Dictionary (.csv):
     - dictionary linking wordid (integer) and word (character)
-  - Bags of words:
+  - Bags of words (.csv):
     - word count (integer) per document: documentid x wordid
-  - metadata:
+  - metadata (.seq):
    - id: e-mail unique identifier
    - path to e-mail file
    - user (sender): character
@@ -80,7 +80,7 @@ See also the documentation on: https://github.com/nlesc-sherlock/spark-lda
   - k number of desired topics
 
 **Outputs:**  
-  - Word by topic matrix
+  - Word by topic matrix (.csv)
     - weights (floating point between 0 and 1) for wordid (integer) x topicid (integer)
 
 For more information on the LDA optimization [see here](http://spark.apache.org/docs/latest/mllib-clustering.html#latent-dirichlet-allocation-lda)
@@ -94,7 +94,7 @@ Use LDA model to generate document topic matrix
   - Word by topic matrix from step 3
 
 **Outputs:**  
-  - Document by topic matrix / the LDA classification
+  - Document by topic matrix / the LDA classification (.csv)
     - weights  (floating point between 0 and 1) for documentid (integer) x topicid (integer)
 
 ## Step 5 - Visualization
