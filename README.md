@@ -64,8 +64,25 @@ The initial enron email data set can be found [here](https://www.cs.cmu.edu/~./e
 
 ## Step 2 - Preprocessing
 
+2.1 Use Forklift to put all e-mails in a sequency file
+
 **Inputs:**
-  - enron_mail.seq sequence file with all the e-mails  
+- Path to folder with raw e-mails
+
+**Output:**
+- sequence file
+
+2.2 Use EmailParser.scala to proces the sequence file
+
+**Inputs:**
+ - enron_mail.seq sequence file with all the e-mails  
+ - input: string?
+ - corpus: string?
+ - dictionary: string?
+ - metadata: string?
+ - above: fraction of documents above which words should not occur
+ - below: fraction of documents below which words should not occur
+ - keep_n: keep the n most frequent words, after applying above and below
 
 **Outputs:**
   - Dictionary:
@@ -85,15 +102,7 @@ The initial enron email data set can be found [here](https://www.cs.cmu.edu/~./e
    - subject: subject of the e-mail, one character string
 
 **Details:**
-Prepare original raw e-mails for LDA classication in the next step:
-- remove all words occurring in more than 'above' FRACTION of documents.
-- remove all words occurring in less than 'below' NUMBER of documents.
-- keep the n most frequent words, after the previous step. 
-- extract metadata
-- remove stop words
-- remove signatures
-- build word dictionary
-- convert documents to bag-of-words.
+Prepare original raw e-mails for LDA classication in the next step
 
 Command: EmailParser.scala (see https://github.com/nlesc-sherlock/spark-lda)
 Uses / dependencies: Scala? Sparke? Python?
