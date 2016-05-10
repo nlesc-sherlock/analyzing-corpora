@@ -71,14 +71,11 @@ Data preparation: build dictionary, convert documents go bag-of-words (correct?)
 ## Step 3 - Run LDA: document how this is run.
    - This step could be run multiple times (for different number of topics).
 
-   ** Inputs: ** `? Dictionary, metadata, bags of words ?`  
-   ** Outputs: ** `? Topic model ?`
-
    **Inputs:**
-   -
+   -`? Dictionary, metadata, bags of words ?`  
 
    **Outputs:**
-   * metadata:
+   metadata:
    - id
    - PATH
    - user (sender)
@@ -89,11 +86,11 @@ Data preparation: build dictionary, convert documents go bag-of-words (correct?)
    - sent data-type/rec. data-type
    - MIMMSGID *
    - subject
-   * Word dictionary:
+   Word dictionary:
    - dictionary linking wordid (integer) and word (character)
-   * Word by topic matrix (the LDA model)
+   Word by topic matrix (the LDA model)
    - matrix wordid (integer) by topicid (integer)
-   * Document by topic matrix (the LDA classification)
+   Document by topic matrix (the LDA classification)
    - matrix documentid (integer) by topicid (integer)
 
 
