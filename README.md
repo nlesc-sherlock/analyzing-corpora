@@ -37,6 +37,10 @@ Prepare e-mails as stored in sequence file for LDA classication with [EmailParse
 
     spark-submit --class EmailParser $myjar data/enron_mail.seq --metadata data/metadata.seq --dictionary data/dic.csv --corpus data/bow.csv
 
+The prep-processing includes the exclusion of words that are too popular and the
+exclusion of words that are too rare, the criteria for this can be set with the optional
+arguments.
+
 **Inputs:**
  - enron_mail.seq sequence file with all the e-mails
  - specify output-files
@@ -61,6 +65,7 @@ Prepare e-mails as stored in sequence file for LDA classication with [EmailParse
    - sent data-type/rec. data-type
    - MIMMSGID *
    - subject: subject of the e-mail, one character string
+
 
 
 ## Step 3 - Train LDA
