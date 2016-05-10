@@ -63,7 +63,6 @@ The initial enron email data set can be found [here](https://www.cs.cmu.edu/~./e
     forqlift fromarchive enron_mail_20150507.tgz --file enron_mail.seq --compress bzip2 --data-type text
 
 ## Step 2 - Preprocessing
-Data preparation: build dictionary, convert documents go bag-of-words (correct?). Which script do we need to run this (EmailParser.scala?)?
 
 **Inputs:**
   - enron_mail.seq sequence file with all the e-mails  
@@ -84,6 +83,20 @@ Data preparation: build dictionary, convert documents go bag-of-words (correct?)
    - sent data-type/rec. data-type
    - MIMMSGID *
    - subject: subject of the e-mail, one character string
+
+**Details:**
+Prepare original raw e-mails for LDA classication in the next step:
+- remove all words occurring in more than 'above' FRACTION of documents.
+- remove all words occurring in less than 'below' NUMBER of documents.
+- keep the n most frequent words, after the previous step. 
+- extract metadata
+- remove stop words
+- remove signatures
+- build word dictionary
+- convert documents to bag-of-words.
+
+Command: EmailParser.scala (see https://github.com/nlesc-sherlock/spark-lda)
+Uses / dependencies: Scala? Sparke? Python?
 
 ## Step 3 - Run LDA: document how this is run.
 This step could be run multiple times (for different number of topics).
