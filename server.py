@@ -36,15 +36,18 @@ def getWordsInTopic(n):
     return wordArray
 
 def getTopicsInCluster(n): #newly added
-    pct = 0.20
+    pct = 0.40
     topicIds = _data2[:,n]
     topicIds /= topicIds.sum()
     sortIdx = topicIds.argsort()
     sortIdx = sortIdx[::-1]
     clustertopicIds = sortIdx[topicIds[sortIdx].cumsum()<pct]
 
-    topicArray = [ {"name": _idToTopic[wId], "size": 1} for wId in clustertopicIds ]
-    return topicArray
+    topicArray = [ getTopic(cId) for cId in clustertopicIds ]
+    return {
+        'name'    : 'Cluster %d'%n,
+        'children': topicArray
+    }
 
 def getTopic(n):
     topic = {
@@ -67,7 +70,7 @@ def getCluster(n): #newly added
 #         'children': topics
 #     }
 
-@app.route('/visualisation')
+@app.route('/visualisation/sunburst')
 def visualisationData():
     clusters = [ getTopicsInCluster(n) for n in range(_data2.shape[1]) ]
     data = {
