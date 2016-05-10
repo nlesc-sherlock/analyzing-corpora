@@ -39,7 +39,7 @@ Prepare e-mails as stored in sequence file for LDA classication with [EmailParse
 
 **Inputs:**
  - enron_mail.seq sequence file with all the e-mails
- - specify output-files and their format (either .seq or .csv)
+ - specify output-files
  - optional arguments for EmailParser, see also:
 
 
@@ -78,6 +78,7 @@ See also the documentation on: https://github.com/nlesc-sherlock/spark-lda
   - Word by topic matrix
     - weights (floating point between 0 and 1) for wordid (integer) x topicid (integer)
 
+For more information on the LDA optimization [see here](http://spark.apache.org/docs/latest/mllib-clustering.html#latent-dirichlet-allocation-lda)
 
 ## Step 4 - Apply LDA
 Use LDA model to generate document topic matrix
